@@ -625,6 +625,18 @@
       color: var(--text-muted);
     }
 
+    .usage-manage {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0a84ff;
+    }
+
+    .usage-reset-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
     .usage-status-row {
       display: flex;
       align-items: center;
@@ -1171,7 +1183,7 @@
   <!-- Founder-journey banner (links through /founder for tracking + one destination) -->
   <a href="/founder" target="_blank" class="announce-bar" data-fast-goal="founder_banner">
     <span class="announce-bar-tag">WATCH</span>
-    🎥 The solo founder journey behind this app<span class="announce-bar-cta"> <span class="announce-bar-sep">&bull;</span> Watch on YouTube</span>
+    🎥 Watch the journey behind ClaudeUsageBar founder<span class="announce-bar-cta"> <span class="announce-bar-sep">&bull;</span> Watch on YouTube</span>
   </a>
   <div class="ambient"></div>
 
@@ -1364,13 +1376,12 @@
               <div class="usage-section">
                 <div class="usage-section-header">
                   <span class="usage-section-label">Extra usage</span>
-                  <span class="usage-section-reset">Resets Aug 1</span>
+                  <span class="usage-manage">Manage →</span>
                 </div>
-                <div class="usage-progress">
-                  <div class="usage-progress-bar" id="extraBar" style="width: 34%;"></div>
-                </div>
-                <span class="usage-section-percent" id="extraPercent">$8.50 of $25.00 · 34%</span>
+                <span class="usage-section-percent">USD 4.20 free credits left</span>
               </div>
+
+              <div class="usage-reset-note" id="resetNote">1 usage-limit reset available until Nov 1</div>
 
               <div class="usage-status-row" id="statusRow">
                 <span class="usage-status-dot green" id="statusDot"></span>
@@ -1634,6 +1645,14 @@
       // Update last updated time
       updateLastUpdatedTime();
     }
+
+    // Demo reset expiry: always two weeks out so it never reads as expired
+    (function () {
+      const note = document.getElementById('resetNote');
+      if (!note) return;
+      const d = new Date(Date.now() + 14 * 864e5);
+      note.textContent = '1 usage-limit reset available until ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    })();
 
     // Toggle usage popup with Cmd+U
     function toggleUsagePopup() {
