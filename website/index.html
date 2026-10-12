@@ -560,6 +560,7 @@
       padding: 16px;
       min-width: 320px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      text-align: left;
     }
 
     .usage-popup-title {
@@ -631,10 +632,15 @@
       color: #0a84ff;
     }
 
+    .usage-credits {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
     .usage-reset-note {
       font-size: 11px;
-      color: var(--text-muted);
-      opacity: 0.6;
+      color: var(--text-secondary);
+      margin: -4px 0 14px;
     }
 
     .usage-status-row {
@@ -1378,7 +1384,7 @@
                   <span class="usage-section-label">Extra usage</span>
                   <span class="usage-manage">Manage →</span>
                 </div>
-                <span class="usage-section-percent">USD 4.20 free credits left</span>
+                <div class="usage-credits">USD 4.20 free credits left</div>
               </div>
 
               <div class="usage-reset-note" id="resetNote">1 usage-limit reset available until Nov 1</div>
