@@ -87,6 +87,8 @@ struct ConnectionsView: View {
             Text("Connexions")
                 .font(.caption.weight(.semibold))
             line("Limites", usageManager.usageSource == "claude.ai" ? "claude.ai, en direct" : "statusline Claude Code")
+            line("Session claude.ai", !usageManager.keychainIssue.isEmpty ? usageManager.keychainIssue
+                 : (usageManager.sessionCookie.isEmpty ? "absente : colle un cookie ou importe-la" : "présente"))
             line("Console (crédits API)", consoleState)
 
             Button("Importer les sessions depuis Zen / Firefox") {

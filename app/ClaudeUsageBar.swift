@@ -107,6 +107,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.statusManager.fetch()
         }
 
+        if CommandLine.arguments.contains("--diagnose") {
+            print("diagnostic : cookie claude.ai en mémoire =", !usageManager.sessionCookie.isEmpty,
+                  "| cookie Console =", !usageManager.consoleCookie.isEmpty,
+                  "| problème trousseau =", usageManager.keychainIssue.isEmpty ? "aucun" : usageManager.keychainIssue)
+            exit(0)
+        }
+
         if CommandLine.arguments.contains("--probe-console") {
             DispatchQueue.global().async {
                 self.usageManager.probeConsole()
@@ -469,6 +476,7 @@ class UsageManager: ObservableObject {
     @Published var consoleStatus: String = ""
     @Published var browserImportReport: String = ""
     @Published var usageSource: String = ""
+    @Published var keychainIssue: String = ""
     private weak var delegate: AppDelegate?
     private var lastNotifiedThreshold: Int = 0
 
@@ -491,9 +499,14 @@ class UsageManager: ObservableObject {
     /// Lit le cookie dans le Keychain. Un cookie resté en clair dans UserDefaults (anciennes versions)
     /// est migré une fois, puis effacé du .plist.
     func loadSessionCookie() {
-        if let stored = Self.cookieKeychain.read(account: Self.cookieAccount) {
-            sessionCookie = stored
+        let stored = Self.cookieKeychain.readResult(account: Self.cookieAccount)
+        if let value = stored.value {
+            sessionCookie = value
             return
+        }
+        if stored.status != errSecItemNotFound {
+            // L'élément existe mais macOS refuse la lecture (autorisation du trousseau non accordée).
+            keychainIssue = "Trousseau : accès refusé (code \(stored.status))"
         }
         guard let legacy = UserDefaults.standard.string(forKey: "claude_session_cookie") else { return }
         sessionCookie = legacy
@@ -1897,7 +1910,7 @@ struct UsageView: View {
 
             HStack {
                 let stale = SyncHelpers.isStale(usageManager.lastUpdated)
-                Text("Mis à jour \(SyncHelpers.age(since: usageManager.lastUpdated)) · \(usageManager.usageSource == "claude.ai" ? "claude.ai" : "statusline")")
+                Text("Mis à jour \(SyncHelpers.age(since: usageManager.lastUpdated)) · \(usageManager.usageSource == "claude.ai" ? "claude.ai" : "statusline, sans session claude.ai")")
                     .font(.caption)
                     .foregroundColor(stale ? .orange : Color.secondaryText)
                 Spacer()
