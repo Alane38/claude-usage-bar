@@ -107,6 +107,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.statusManager.fetch()
         }
 
+        if CommandLine.arguments.contains("--probe-console") {
+            DispatchQueue.global().async {
+                self.usageManager.probeConsole()
+                exit(0)
+            }
+        }
+
         if CommandLine.arguments.contains("--show") {
             // Mode développement : ouvre le popover au lancement, pour le vérifier sans cliquer.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.openPopover() }
@@ -115,9 +122,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let snapshotPath = Snapshot.outputPath {
             // Laisse le temps au statusline/réseau de remplir les données, puis rend le popover et quitte.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                if CommandLine.arguments.contains("--demo") {
+                    // Données fictives pour l'aperçu uniquement : jamais écrites ailleurs que dans l'image.
+                    let deadline = Date().addingTimeInterval(16 * 86400)
+                    self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,
+                                                                      periodResetsAt: deadline, nextExpiry: deadline)
+                    self.usageManager.consoleUpdatedAt = Date().addingTimeInterval(-120)
+                }
                 if CommandLine.arguments.contains("--settings") {
-                    Snapshot.write(view: DisplaySettingsView(usageManager: self.usageManager).padding(16).background(Color.black),
-                                   to: snapshotPath, size: NSSize(width: 360, height: 420))
+                    Snapshot.write(view: VStack(alignment: .leading, spacing: 12) {
+                        ConnectionsView(usageManager: self.usageManager)
+                        Divider()
+                        DisplaySettingsView(usageManager: self.usageManager)
+                    }.padding(16).background(Color.black),
+                                   to: snapshotPath, size: NSSize(width: 360, height: 640))
                 } else {
                     Snapshot.write(view: UsageView(usageManager: self.usageManager, statusManager: self.statusManager),
                                    to: snapshotPath, size: NSSize(width: 360, height: 640))
@@ -442,7 +460,14 @@ class UsageManager: ObservableObject {
     @Published var apiCreditCycleEnd: Date?
 
     private var statusItem: NSStatusItem?
-    private var sessionCookie: String = ""
+    var sessionCookie: String = ""
+    var consoleCookie: String = ""
+    var lastAutoImport: Date?
+    @Published var consoleBalance: ConsoleBalance?
+    @Published var consoleUpdatedAt: Date?
+    @Published var consoleStatus: String = ""
+    @Published var browserImportReport: String = ""
+    @Published var usageSource: String = ""
     private weak var delegate: AppDelegate?
     private var lastNotifiedThreshold: Int = 0
 
@@ -450,6 +475,7 @@ class UsageManager: ObservableObject {
         self.statusItem = statusItem
         self.delegate = delegate
         loadSessionCookie()
+        loadConsoleCookie()
         loadSettings()
         checkAccessibilityStatus()
     }
@@ -676,6 +702,7 @@ class UsageManager: ObservableObject {
             weeklyResetsAt = weekly.resetsAt
         }
         lastUpdated = usage.capturedAt
+        usageSource = "statusline"
         errorMessage = nil
         hasFetchedData = true
         updatePercentages()
@@ -686,6 +713,7 @@ class UsageManager: ObservableObject {
     func fetchUsage() {
         // Sans cookie, le statusline suffit ; avec cookie, il sert de repli si le réseau échoue.
         let hasStatusline = applyStatuslineUsage()
+        fetchConsoleBalance()
         guard !sessionCookie.isEmpty else {
             if !hasStatusline {
                 DispatchQueue.main.async {
@@ -891,6 +919,10 @@ class UsageManager: ObservableObject {
                     self?.parseUsageData(data)
                 } else {
                     self?.errorMessage = "HTTP \(httpResponse.statusCode)"
+                    if httpResponse.statusCode == 401 || httpResponse.statusCode == 403,
+                       self?.shouldAutoImport() == true, self?.importBrowserCookies() == true {
+                        self?.fetchUsage()
+                    }
                 }
 
                 self?.updateStatusBar()
@@ -1001,6 +1033,7 @@ class UsageManager: ObservableObject {
             NSLog("✅ Parsed: Session \(sessionUsage)%, Weekly \(weeklyUsage)%\(hasWeeklySonnet ? ", Weekly Sonnet \(weeklySonnetUsage)%" : "")\(hasWeeklyFable ? ", Weekly Fable \(weeklyFableUsage)%" : "")")
 
             lastUpdated = Date()
+            usageSource = "claude.ai"
             errorMessage = nil
             hasFetchedData = true
 
@@ -1622,7 +1655,9 @@ struct UsageView: View {
                 }
             }
 
-            if let credits = usageManager.apiCredits {
+            if let balance = usageManager.consoleBalance {
+                ConsoleCreditsTile(balance: balance, updatedAt: usageManager.consoleUpdatedAt)
+            } else if let credits = usageManager.apiCredits {
                 ApiCreditsTile(credits: credits)
             }
 
@@ -1857,9 +1892,10 @@ struct UsageView: View {
             Divider()
 
             HStack {
-                Text("Last updated: \(formatTime(usageManager.lastUpdated))")
+                let stale = SyncHelpers.isStale(usageManager.lastUpdated)
+                Text("Mis à jour \(SyncHelpers.age(since: usageManager.lastUpdated)) · \(usageManager.usageSource == "claude.ai" ? "claude.ai" : "statusline")")
                     .font(.caption)
-                    .foregroundColor(Color.secondaryText)
+                    .foregroundColor(stale ? .orange : Color.secondaryText)
                 Spacer()
                 Button("Refresh") {
                     usageManager.fetchUsage()
@@ -1953,6 +1989,10 @@ struct UsageView: View {
 
             if showingSettings {
                 VStack(alignment: .leading, spacing: 12) {
+                    ConnectionsView(usageManager: usageManager)
+
+                    Divider()
+
                     DisplaySettingsView(usageManager: usageManager)
 
                     Divider()
