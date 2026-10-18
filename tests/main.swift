@@ -27,4 +27,13 @@ check(StatuslineUsage.parse(payload("""
 {"rate_limits":{"five_hour":{"used_percentage":250,"resets_at":1003600}}}
 """), capturedAt: now, now: now)?.fiveHour?.usedPercentage == 100, "pourcentage borné à 100")
 
+let keychain = KeychainStore(service: "com.alane.usagebar.tests")
+keychain.delete(account: "t")
+check(keychain.read(account: "t") == nil, "Keychain : absent au départ")
+check(keychain.write("secret-1", account: "t") && keychain.read(account: "t") == "secret-1", "Keychain : écriture puis lecture")
+keychain.write("secret-2", account: "t")
+check(keychain.read(account: "t") == "secret-2", "Keychain : écriture idempotente (remplace)")
+keychain.delete(account: "t")
+check(keychain.read(account: "t") == nil, "Keychain : suppression")
+
 exit(failures == 0 ? 0 : 1)

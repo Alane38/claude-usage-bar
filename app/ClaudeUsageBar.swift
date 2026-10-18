@@ -39,7 +39,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var popover: NSPopover!
     var usageManager: UsageManager!
     var statusManager: StatusManager!
-    var updateManager: UpdateManager!
     var eventMonitor: Any?
     var hotKeyRef: EventHotKeyRef?
 
@@ -65,7 +64,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize managers
         usageManager = UsageManager(statusItem: statusItem, delegate: self)
         statusManager = StatusManager()
-        updateManager = UpdateManager()
 
         // Create popover
         popover = NSPopover()
@@ -74,8 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: UsageView(
             usageManager: usageManager,
-            statusManager: statusManager,
-            updateManager: updateManager
+            statusManager: statusManager
         ))
 
         // Appearance preference: "system" (default) tracks the macOS light/dark
@@ -99,17 +96,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Fetch initial data
         usageManager.fetchUsage()
         statusManager.fetch()
-        updateManager.fetch()
 
         // Usage + Anthropic status are time-sensitive — poll every 5 min.
         Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in
             self.usageManager.fetchUsage()
             self.statusManager.fetch()
-        }
-
-        // App updates are infrequent (new release at most weekly) — poll every 3 hours.
-        Timer.scheduledTimer(withTimeInterval: 3 * 3600, repeats: true) { _ in
-            self.updateManager.fetch()
         }
 
         // Set up Cmd+U keyboard shortcut
@@ -433,9 +424,20 @@ class UsageManager: ObservableObject {
         isAccessibilityEnabled = AXIsProcessTrusted()
     }
 
+    private static let cookieKeychain = KeychainStore(service: "com.alane.usagebar")
+    private static let cookieAccount = "claude_session_cookie"
+
+    /// Lit le cookie dans le Keychain. Un cookie resté en clair dans UserDefaults (anciennes versions)
+    /// est migré une fois, puis effacé du .plist.
     func loadSessionCookie() {
-        if let savedCookie = UserDefaults.standard.string(forKey: "claude_session_cookie") {
-            sessionCookie = savedCookie
+        if let stored = Self.cookieKeychain.read(account: Self.cookieAccount) {
+            sessionCookie = stored
+            return
+        }
+        guard let legacy = UserDefaults.standard.string(forKey: "claude_session_cookie") else { return }
+        sessionCookie = legacy
+        if Self.cookieKeychain.write(legacy, account: Self.cookieAccount) {
+            UserDefaults.standard.removeObject(forKey: "claude_session_cookie")
         }
     }
 
@@ -508,16 +510,16 @@ class UsageManager: ObservableObject {
     func saveSessionCookie(_ cookie: String) {
         NSLog("ClaudeUsage: Saving cookie, length: \(cookie.count)")
         sessionCookie = cookie
-        UserDefaults.standard.set(cookie, forKey: "claude_session_cookie")
-        UserDefaults.standard.synchronize()
-        NSLog("ClaudeUsage: Cookie saved successfully")
+        if !Self.cookieKeychain.write(cookie, account: Self.cookieAccount) {
+            NSLog("ClaudeUsage: Keychain write failed, cookie kept in memory only")
+        }
     }
 
     func clearSessionCookie() {
         NSLog("ClaudeUsage: Clearing cookie")
         sessionCookie = ""
+        Self.cookieKeychain.delete(account: Self.cookieAccount)
         UserDefaults.standard.removeObject(forKey: "claude_session_cookie")
-        UserDefaults.standard.synchronize()
 
         // Reset all data
         sessionUsage = 0
@@ -555,7 +557,7 @@ class UsageManager: ObservableObject {
             let trimmed = part.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("lastActiveOrg=") {
                 let orgId = trimmed.replacingOccurrences(of: "lastActiveOrg=", with: "")
-                NSLog("📋 Found org ID in cookie: \(orgId)")
+                NSLog("📋 Found org ID in cookie")
                 completion(orgId)
                 return
             }
@@ -582,7 +584,7 @@ class UsageManager: ObservableObject {
                 completion(nil)
                 return
             }
-            NSLog("✅ Got org ID from bootstrap: \(lastActiveOrgId)")
+            NSLog("✅ Got org ID from bootstrap")
             completion(lastActiveOrgId)
         }.resume()
     }
@@ -790,7 +792,7 @@ class UsageManager: ObservableObject {
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
         request.setValue("claude.ai", forHTTPHeaderField: "authority")
 
-        NSLog("🔍 Fetching from: \(urlString)")
+        NSLog("🔍 Fetching usage")
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
@@ -810,10 +812,6 @@ class UsageManager: ObservableObject {
                 }
 
                 NSLog("📡 Status: \(httpResponse.statusCode)")
-
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    NSLog("📦 Response: \(responseString)")
-                }
 
                 if httpResponse.statusCode == 200, let data = data {
                     self?.parseUsageData(data)
@@ -1226,244 +1224,6 @@ class StatusManager: ObservableObject {
     }
 }
 
-// MARK: - App Updates
-
-struct BannerButton: Equatable {
-    let label: String
-    let url: URL?         // optional — opens this URL (validated)
-    let action: String?   // "dismiss" closes the banner; nil = no extra side effect
-    let style: String?    // "primary" | "secondary" | nil
-}
-
-struct AvailableUpdate: Equatable {
-    let version: String
-    let title: String
-    let body: String
-    let buttons: [BannerButton]
-}
-
-// Free-form message channel, decoupled from the app version. Driven by the
-// `message` object in latest.json and keyed on `id` (not version), so any
-// message can be sent at any time without shipping a new build. Every field is
-// author-controlled — including the notification title, which is NOT possible
-// on the legacy version-based channel.
-struct Announcement: Equatable {
-    let id: String
-    let heading: String?          // optional small top line on the card (nil = none)
-    let title: String
-    let body: String
-    let buttons: [BannerButton]
-    let notify: Bool              // false = show the in-app card only, no OS notification
-    let notifTitle: String        // fully custom notification title
-    let notifBody: String         // fully custom notification body
-}
-
-class UpdateManager: ObservableObject {
-    @Published var available: AvailableUpdate?
-    @Published var announcement: Announcement?
-
-    // Served directly from the repo via GitHub — free, unlimited, no Vercel meter.
-    // Same file as website/latest.json so existing v1.1 users on Vercel see the same JSON.
-    private let endpoint = URL(string: "https://raw.githubusercontent.com/Artzainnn/ClaudeUsageBar/main/website/latest.json")!
-
-    var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    }
-
-    private static let allowedHostSuffixes = [
-        "github.com",
-        "claudeusagebar.com"
-    ]
-
-    static func isSafeURL(_ url: URL) -> Bool {
-        guard url.scheme == "https" else { return false }
-        guard let host = url.host?.lowercased() else { return false }
-        return allowedHostSuffixes.contains(where: { host == $0 || host.hasSuffix("." + $0) })
-    }
-
-    private static func parseButtons(from json: [String: Any]) -> [BannerButton] {
-        // Explicit `buttons` array (new schema, supports any combination)
-        if let raw = json["buttons"] as? [[String: Any]] {
-            return raw.compactMap { dict -> BannerButton? in
-                guard let label = dict["label"] as? String, !label.isEmpty else { return nil }
-                let urlStr = dict["url"] as? String
-                let url = urlStr.flatMap { URL(string: $0) }
-                if let url = url, !isSafeURL(url) { return nil }   // reject unsafe URLs
-                return BannerButton(
-                    label: label,
-                    url: url,
-                    action: dict["action"] as? String,
-                    style: dict["style"] as? String
-                )
-            }
-        }
-        // Back-compat: legacy `download_url` builds the default 2-button layout
-        if let urlStr = json["download_url"] as? String,
-           let url = URL(string: urlStr),
-           isSafeURL(url) {
-            return [
-                BannerButton(label: "Download", url: url, action: nil, style: "primary"),
-                BannerButton(label: "Later",    url: nil, action: "dismiss", style: nil)
-            ]
-        }
-        return []
-    }
-
-    func fetch() {
-        let request = URLRequest(url: endpoint, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
-            guard let self = self,
-                  let data = data,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                NSLog("⚠️ Update fetch failed or invalid payload")
-                return
-            }
-
-            // ---- Legacy version-update channel (for real releases; also what
-            //      pre-1.3.1 apps rely on). Optional — absent fields = no update.
-            let updatePayload: AvailableUpdate? = {
-                guard let version = json["version"] as? String,
-                      let title = json["title"] as? String,
-                      let body = json["description"] as? String else { return nil }
-                return AvailableUpdate(version: version, title: title, body: body,
-                                       buttons: Self.parseButtons(from: json))
-            }()
-
-            // ---- Free-form message channel (`message` object, keyed on `id`).
-            //      Every field author-controlled, including the notification title.
-            let announcementPayload: Announcement? = {
-                guard let msg = json["message"] as? [String: Any],
-                      let id = msg["id"] as? String, !id.isEmpty else { return nil }
-                let title = msg["title"] as? String ?? ""
-                let body  = msg["body"]  as? String ?? ""
-                let notif = msg["notification"] as? [String: Any]
-                return Announcement(
-                    id: id,
-                    heading: msg["heading"] as? String,
-                    title: title,
-                    body: body,
-                    buttons: Self.parseButtons(from: msg),
-                    notify: (msg["notify"] as? Bool) ?? true,
-                    notifTitle: (notif?["title"] as? String) ?? (title.isEmpty ? "ClaudeUsageBar" : title),
-                    notifBody:  (notif?["body"]  as? String) ?? body
-                )
-            }()
-
-            DispatchQueue.main.async {
-                // First-seen times decide which banner wins when both are live.
-                let d = UserDefaults.standard
-                let now = Date().timeIntervalSince1970
-                if let update = updatePayload, self.isNewer(remote: update.version, than: self.currentVersion),
-                   d.string(forKey: "update_seen_version") != update.version {
-                    d.set(update.version, forKey: "update_seen_version")
-                    d.set(now, forKey: "update_seen_at")
-                }
-                if let ann = announcementPayload, d.string(forKey: "message_seen_id") != ann.id {
-                    d.set(ann.id, forKey: "message_seen_id")
-                    d.set(now, forKey: "message_seen_at")
-                }
-
-                // Version-update channel
-                if let update = updatePayload, self.isNewer(remote: update.version, than: self.currentVersion) {
-                    if self.available != update {
-                        self.available = update
-                        NSLog("⬆️ Update available: \(update.version)")
-                    }
-                    let lastNotified = UserDefaults.standard.string(forKey: "last_notified_update_version")
-                    if lastNotified != update.version {
-                        let n = NSUserNotification()
-                        n.title = "ClaudeUsageBar \(update.version) is available"
-                        n.informativeText = update.title
-                        n.soundName = NSUserNotificationDefaultSoundName
-                        NSUserNotificationCenter.default.deliver(n)
-                        UserDefaults.standard.set(update.version, forKey: "last_notified_update_version")
-                        NSLog("📬 Sent update notification for \(update.version)")
-                    }
-                } else {
-                    self.available = nil
-                }
-
-                // Message channel — notify once per `id`. On the very first run
-                // that supports messages, seed the current id WITHOUT notifying so
-                // updating from an older version doesn't re-ping the live message.
-                if let ann = announcementPayload {
-                    let dismissed = UserDefaults.standard.string(forKey: "dismissed_message_id")
-                    self.announcement = (dismissed == ann.id) ? nil : ann
-
-                    let lastShown = UserDefaults.standard.string(forKey: "last_shown_message_id")
-                    if lastShown == nil {
-                        UserDefaults.standard.set(ann.id, forKey: "last_shown_message_id")   // seed, no notif
-                    } else if lastShown != ann.id {
-                        if ann.notify {
-                            let n = NSUserNotification()
-                            n.title = ann.notifTitle
-                            n.informativeText = ann.notifBody
-                            n.soundName = NSUserNotificationDefaultSoundName
-                            NSUserNotificationCenter.default.deliver(n)
-                            NSLog("📬 Sent message notification for id \(ann.id)")
-                        }
-                        UserDefaults.standard.set(ann.id, forKey: "last_shown_message_id")
-                    }
-                } else {
-                    self.announcement = nil
-                }
-            }
-        }.resume()
-    }
-
-    enum Banner { case none, message, update }
-
-    /// When a message card and an update banner are both live, the popover shows the
-    /// one published last (first seen most recently), so a newer update or message
-    /// replaces an older card even if it was never closed. Ties go to the update.
-    static func pickBanner(hasMessage: Bool, hasUpdate: Bool,
-                           messageSeenAt: Double, updateSeenAt: Double) -> Banner {
-        switch (hasMessage, hasUpdate) {
-        case (false, false): return .none
-        case (true, false): return .message
-        case (false, true): return .update
-        case (true, true): return updateSeenAt >= messageSeenAt ? .update : .message
-        }
-    }
-
-    var visibleBanner: Banner {
-        let d = UserDefaults.standard
-        return Self.pickBanner(hasMessage: announcement != nil,
-                               hasUpdate: available != nil && !isCurrentDismissed,
-                               messageSeenAt: d.double(forKey: "message_seen_at"),
-                               updateSeenAt: d.double(forKey: "update_seen_at"))
-    }
-
-    func dismissCurrent() {
-        // Dismiss the banner on screen; the other one, if any, shows next.
-        if visibleBanner == .message, let id = announcement?.id {
-            UserDefaults.standard.set(id, forKey: "dismissed_message_id")
-            announcement = nil
-            return
-        }
-        if let v = available?.version {
-            UserDefaults.standard.set(v, forKey: "dismissed_update_version")
-        }
-        available = nil
-    }
-
-    var isCurrentDismissed: Bool {
-        guard let v = available?.version else { return false }
-        return UserDefaults.standard.string(forKey: "dismissed_update_version") == v
-    }
-
-    private func isNewer(remote: String, than current: String) -> Bool {
-        let r = remote.split(separator: ".").map { Int($0) ?? 0 }
-        let c = current.split(separator: ".").map { Int($0) ?? 0 }
-        for i in 0..<max(r.count, c.count) {
-            let a = i < r.count ? r[i] : 0
-            let b = i < c.count ? c[i] : 0
-            if a != b { return a > b }
-        }
-        return false
-    }
-}
-
 // Custom NSTextField that properly handles paste
 class CustomTextField: NSTextField {
     var onTextChange: ((String) -> Void)?
@@ -1607,7 +1367,6 @@ private struct ContentHeightKey: PreferenceKey {
 struct UsageView: View {
     @ObservedObject var usageManager: UsageManager
     @ObservedObject var statusManager: StatusManager
-    @ObservedObject var updateManager: UpdateManager
     @State private var sessionCookieInput: String = ""
     @State private var showingCookieInput: Bool = false
     @State private var showingSettings: Bool = false
@@ -1667,83 +1426,6 @@ struct UsageView: View {
             Text("Claude Usage")
                 .font(.headline)
                 .padding(.bottom, 4)
-
-            // Free-form message banner (author-controlled). Takes priority over
-            // the version-update banner when both are present.
-            if updateManager.visibleBanner == .message, let ann = updateManager.announcement {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        if let heading = ann.heading, !heading.isEmpty {
-                            Text(heading)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                        Spacer()
-                        Button(action: { updateManager.dismissCurrent() }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(Color.secondaryText)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                    if !ann.title.isEmpty {
-                        Text(ann.title)
-                            .font(.caption)
-                    }
-                    if !ann.body.isEmpty {
-                        Text(ann.body)
-                            .font(.caption2)
-                            .foregroundColor(Color.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if !ann.buttons.isEmpty {
-                        HStack(spacing: 6) {
-                            ForEach(ann.buttons.indices, id: \.self) { i in
-                                bannerButton(ann.buttons[i])
-                            }
-                        }
-                    }
-                }
-                .padding(8)
-                .background(Color.accentColor.opacity(0.12))
-                .cornerRadius(6)
-            }
-
-            // App update banner (version-based). Shares the slot with the message
-            // card; the more recently published of the two is shown.
-            if updateManager.visibleBanner == .update, let update = updateManager.available {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Text("⬆️")
-                        Text("Version \(update.version) available")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Button(action: { updateManager.dismissCurrent() }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(Color.secondaryText)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                    Text(update.title)
-                        .font(.caption)
-                    Text(update.body)
-                        .font(.caption2)
-                        .foregroundColor(Color.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if !update.buttons.isEmpty {
-                        HStack(spacing: 6) {
-                            ForEach(update.buttons.indices, id: \.self) { i in
-                                bannerButton(update.buttons[i])
-                            }
-                        }
-                    }
-                }
-                .padding(8)
-                .background(Color.accentColor.opacity(0.12))
-                .cornerRadius(6)
-            }
 
             if let error = usageManager.errorMessage {
                 Text(error)
@@ -2088,7 +1770,6 @@ struct UsageView: View {
                 Button("Refresh") {
                     usageManager.fetchUsage()
                     statusManager.fetch()
-                    updateManager.fetch()
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
@@ -2445,27 +2126,6 @@ struct UsageView: View {
             return String(raw[..<paren.lowerBound])
         }
         return raw
-    }
-
-    @ViewBuilder
-    func bannerButton(_ btn: BannerButton) -> some View {
-        let tap = {
-            if let url = btn.url {
-                NSWorkspace.shared.open(url)
-            }
-            if btn.action == "dismiss" {
-                updateManager.dismissCurrent()
-            }
-        }
-        if btn.style == "primary" {
-            Button(btn.label, action: tap)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-        } else {
-            Button(btn.label, action: tap)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-        }
     }
 
     func badgeColor(for status: String) -> Color {
