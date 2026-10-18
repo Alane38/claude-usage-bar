@@ -70,10 +70,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initial guess; SwiftUI's intrinsic size (capped at 600) will drive the actual size.
         popover.contentSize = NSSize(width: 360, height: 320)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: UsageView(
+        let hostingController = NSHostingController(rootView: UsageView(
             usageManager: usageManager,
             statusManager: statusManager
         ))
+        // Sans cela le contrôleur ne propage jamais sa taille : le popover reste à 320 pt
+        // alors que le contenu est plus haut, et l'en-tête est rogné en haut.
+        hostingController.sizingOptions = [.preferredContentSize]
+        popover.contentViewController = hostingController
 
         // Appearance preference: "system" (default) tracks the macOS light/dark
         // setting; "dark"/"light" force one (dark was hard-forced in v1.3.2 and
@@ -101,6 +105,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in
             self.usageManager.fetchUsage()
             self.statusManager.fetch()
+        }
+
+        if CommandLine.arguments.contains("--show") {
+            // Mode développement : ouvre le popover au lancement, pour le vérifier sans cliquer.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.openPopover() }
         }
 
         if let snapshotPath = Snapshot.outputPath {
