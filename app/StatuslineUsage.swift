@@ -36,6 +36,11 @@ struct StatuslineUsage: Equatable {
         return StatuslineUsage(fiveHour: fiveHour, sevenDay: sevenDay, capturedAt: capturedAt)
     }
 
+    /// Le statusline ne remplace l'affichage que s'il est plus récent que la dernière donnée montrée.
+    static func shouldReplace(displayedAt: Date, hasDisplayedData: Bool, capturedAt: Date) -> Bool {
+        !hasDisplayedData || capturedAt > displayedAt
+    }
+
     static func load(path: String = defaultPath, now: Date = Date()) -> StatuslineUsage? {
         let url = URL(fileURLWithPath: path)
         guard let data = try? Data(contentsOf: url) else { return nil }

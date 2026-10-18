@@ -22,6 +22,14 @@ swiftc -parse-as-library -sdk "$SDK" -target arm64-apple-macos13.0 \
     -framework SwiftUI -framework AppKit -framework WebKit
 
 xattr -cr "$APP"
-codesign --force --deep --sign - "$APP"
+# Identité stable : même règle de signature à chaque build, donc macOS garde les autorisations
+# (Keychain, Accessibilité, notifications). Sans certificat local, repli ad-hoc : elles seront redemandées.
+IDENTITY="ClaudeUsageBar Local Signing"
+if security find-identity -p codesigning | grep -q "$IDENTITY"; then
+    codesign --force --deep --sign "$IDENTITY" "$APP"
+else
+    echo "Pas de certificat local (scripts/setup-signing.sh) : signature ad-hoc, les permissions seront redemandées." >&2
+    codesign --force --deep --sign - "$APP"
+fi
 codesign --verify --verbose=2 "$APP"
 echo "OK : $APP"

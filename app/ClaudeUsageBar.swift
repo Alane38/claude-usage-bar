@@ -694,6 +694,9 @@ class UsageManager: ObservableObject {
     @discardableResult
     func applyStatuslineUsage() -> Bool {
         guard let usage = StatuslineUsage.load() else { return false }
+        // Un statusline plus ancien que la dernière donnée affichée ne doit pas la remplacer :
+        // au Refresh, il écrasait les vraies valeurs réseau le temps du chargement.
+        guard StatuslineUsage.shouldReplace(displayedAt: lastUpdated, hasDisplayedData: hasFetchedData, capturedAt: usage.capturedAt) else { return true }
         if let session = usage.fiveHour {
             sessionUsage = Int(session.usedPercentage)
             sessionResetsAt = session.resetsAt

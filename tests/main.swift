@@ -149,4 +149,9 @@ let partial = ConsoleBalance.parse(credits: Data(String(decoding: realCredits, a
     .replacingOccurrences(of: "\"remaining_amount_minor_units\":10000", with: "\"remaining_amount_minor_units\":6250").utf8), spend: nil, now: realNow)
 check(partial?.balance == 62.5 && partial?.promoUsedFraction == 0.375, "réel : 37,5 % consommés")
 
+// --- Le statusline ne doit pas écraser une donnée plus récente (Refresh) ---
+check(!StatuslineUsage.shouldReplace(displayedAt: now, hasDisplayedData: true, capturedAt: now.addingTimeInterval(-3600)), "refresh : statusline ancien ignoré")
+check(StatuslineUsage.shouldReplace(displayedAt: now, hasDisplayedData: true, capturedAt: now.addingTimeInterval(60)), "refresh : statusline plus récent appliqué")
+check(StatuslineUsage.shouldReplace(displayedAt: now, hasDisplayedData: false, capturedAt: now.addingTimeInterval(-3600)), "démarrage : statusline appliqué faute de donnée")
+
 exit(failures == 0 ? 0 : 1)
