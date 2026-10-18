@@ -103,6 +103,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.statusManager.fetch()
         }
 
+        if let snapshotPath = Snapshot.outputPath {
+            // Laisse le temps au statusline/réseau de remplir les données, puis rend le popover et quitte.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                if CommandLine.arguments.contains("--settings") {
+                    Snapshot.write(view: DisplaySettingsView(usageManager: self.usageManager).padding(16).background(Color.black),
+                                   to: snapshotPath, size: NSSize(width: 360, height: 420))
+                } else {
+                    Snapshot.write(view: UsageView(usageManager: self.usageManager, statusManager: self.statusManager),
+                                   to: snapshotPath, size: NSSize(width: 360, height: 640))
+                }
+                NSApp.terminate(nil)
+            }
+        }
+
+        // Le décompte avant reset de la barre de menu avance chaque minute, sans appel réseau.
+        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+            self.usageManager.refreshMenuBar()
+        }
+
         // Set up Cmd+U keyboard shortcut
         setupKeyboardShortcut()
     }
@@ -289,7 +308,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func updateStatusIcon(percentage: Int) {
+    func updateStatusIcon(percentage: Int, title: String? = nil) {
         guard let button = statusItem.button else { return }
 
         // Determine color based on percentage
@@ -307,7 +326,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Set image and title
         button.image = sparkIcon
-        button.title = " \(percentage)%"
+        button.title = title ?? " \(percentage)%"
     }
 
     func createSparkIcon(color: NSColor) -> NSImage {
@@ -406,6 +425,12 @@ class UsageManager: ObservableObject {
     @Published var hasFetchedData: Bool = false
     @Published var isAccessibilityEnabled: Bool = false
     @Published var shortcutEnabled: Bool = true
+    @Published var menuBarMode: MenuBarMode = .session
+    @Published var menuBarShowReset: Bool = false
+    // Crédits API mensuels (Max/Team) : saisis à la main, la tuile n'apparaît qu'une fois la fin de cycle définie.
+    @Published var apiCreditMonthly: Double = 100
+    @Published var apiCreditSpent: Double = 0
+    @Published var apiCreditCycleEnd: Date?
 
     private var statusItem: NSStatusItem?
     private var sessionCookie: String = ""
@@ -478,6 +503,46 @@ class UsageManager: ObservableObject {
         } else {
             shortcutEnabled = UserDefaults.standard.bool(forKey: "shortcut_enabled")
         }
+        loadDisplaySettings()
+    }
+
+    private func loadDisplaySettings() {
+        let defaults = UserDefaults.standard
+        menuBarMode = MenuBarMode(rawValue: defaults.string(forKey: "menubar_mode") ?? "") ?? .session
+        menuBarShowReset = defaults.bool(forKey: "menubar_show_reset")
+        if defaults.object(forKey: "api_credit_monthly") != nil {
+            apiCreditMonthly = defaults.double(forKey: "api_credit_monthly")
+        }
+        apiCreditSpent = defaults.double(forKey: "api_credit_spent")
+        apiCreditCycleEnd = defaults.object(forKey: "api_credit_cycle_end") as? Date
+    }
+
+    func saveDisplaySettings() {
+        let defaults = UserDefaults.standard
+        defaults.set(menuBarMode.rawValue, forKey: "menubar_mode")
+        defaults.set(menuBarShowReset, forKey: "menubar_show_reset")
+        defaults.set(apiCreditMonthly, forKey: "api_credit_monthly")
+        defaults.set(apiCreditSpent, forKey: "api_credit_spent")
+        if let cycleEnd = apiCreditCycleEnd {
+            defaults.set(cycleEnd, forKey: "api_credit_cycle_end")
+        } else {
+            defaults.removeObject(forKey: "api_credit_cycle_end")
+        }
+        refreshMenuBar()
+    }
+
+    var sessionForecast: WindowForecast? {
+        guard let resetsAt = sessionResetsAt else { return nil }
+        return UsageForecast.forecast(usedPercent: Double(sessionUsage), resetsAt: resetsAt, windowLength: UsageForecast.sessionLength)
+    }
+
+    var weeklyForecast: WindowForecast? {
+        guard let resetsAt = weeklyResetsAt else { return nil }
+        return UsageForecast.forecast(usedPercent: Double(weeklyUsage), resetsAt: resetsAt, windowLength: UsageForecast.weekLength)
+    }
+
+    var apiCredits: ApiCredits? {
+        apiCreditCycleEnd.map { ApiCredits(monthlyAmount: apiCreditMonthly, spent: apiCreditSpent, cycleEndsAt: $0) }
     }
 
     func saveSettings() {
@@ -941,11 +1006,19 @@ class UsageManager: ObservableObject {
     func updateStatusBar() {
         let sessionPercent = Int((Double(sessionUsage) / Double(sessionLimit)) * 100)
 
-        // Update the icon color
-        delegate?.updateStatusIcon(percentage: sessionPercent)
+        refreshMenuBar()
 
         // Check for notification thresholds
         checkNotificationThresholds(percentage: sessionPercent)
+    }
+
+    /// Redessine l'icône et le titre sans toucher aux notifications (appelé aussi chaque minute pour le décompte).
+    func refreshMenuBar() {
+        let bar = MenuBarDisplay.state(mode: menuBarMode,
+                                       sessionPercent: sessionUsage, sessionResetsAt: sessionResetsAt,
+                                       weeklyPercent: weeklyUsage, weeklyResetsAt: weeklyResetsAt,
+                                       showReset: menuBarShowReset)
+        delegate?.updateStatusIcon(percentage: bar.percent, title: bar.title)
     }
 
     func checkNotificationThresholds(percentage: Int) {
@@ -1462,6 +1535,10 @@ struct UsageView: View {
                 Text("\(Int(usageManager.sessionPercentage * 100))% used")
                     .font(.caption)
                     .foregroundColor(Color.secondaryText)
+
+                if let forecast = usageManager.sessionForecast {
+                    ForecastLine(forecast: forecast, showsDailyBudget: false)
+                }
             }
 
             // Weekly Usage
@@ -1483,6 +1560,10 @@ struct UsageView: View {
                 Text("\(Int(usageManager.weeklyPercentage * 100))% used")
                     .font(.caption)
                     .foregroundColor(Color.secondaryText)
+
+                if let forecast = usageManager.weeklyForecast {
+                    ForecastLine(forecast: forecast, showsDailyBudget: true)
+                }
             }
 
             // Weekly Sonnet Usage (only show if available)
@@ -1530,6 +1611,10 @@ struct UsageView: View {
                         .font(.caption)
                         .foregroundColor(Color.secondaryText)
                 }
+            }
+
+            if let credits = usageManager.apiCredits {
+                ApiCreditsTile(credits: credits)
             }
 
             // Usage credits (pay-as-you-go). Only shown once credits are actually
@@ -1850,19 +1935,6 @@ struct UsageView: View {
                 .cornerRadius(6)
             }
 
-            // Support Section
-            Button(action: {
-                NSWorkspace.shared.open(URL(string: "https://donate.stripe.com/3cIcN5b5H7Q8ay8bIDfIs02")!)
-            }) {
-                HStack(spacing: 4) {
-                    Text("☕")
-                    Text("Buy Dev a Coffee")
-                }
-            }
-            .buttonStyle(.borderless)
-            .font(.caption)
-            .foregroundColor(.orange)
-
             // Settings Section
             Button(showingSettings ? "Hide Settings" : "Settings") {
                 showingSettings.toggle()
@@ -1872,6 +1944,10 @@ struct UsageView: View {
 
             if showingSettings {
                 VStack(alignment: .leading, spacing: 12) {
+                    DisplaySettingsView(usageManager: usageManager)
+
+                    Divider()
+
                     Toggle(isOn: Binding(
                         get: { usageManager.openAtLogin },
                         set: { newValue in

@@ -1,3 +1,19 @@
+# ClaudeUsageBar (fork d'Alane)
+
+Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar) (MIT), maintenu à part.
+
+**Ce qui change**
+- Lit `rate_limits` dans le statusline de Claude Code (source officielle, sans cookie ni réseau) ; le cookie claude.ai reste optionnel.
+- Cookie stocké dans le Keychain (migration automatique depuis l'ancien stockage en clair) ; plus de log de réponse brute, plus de bannières distantes.
+- Prévisions : fin de semaine estimée, budget par jour, rythme de la session de 5 h avec heure d'atteinte de 100 %.
+- Barre de menu configurable (session, hebdo ou la plus haute, avec décompte avant reset).
+- Tuile crédits API mensuels (Max/Team), dépense saisie à la main : aucun endpoint public ne donne le solde.
+
+**Build** (sans Xcode.app, Command Line Tools + SDK 26) : `./scripts/build.sh` puis `open build/ClaudeUsageBar.app`. Tests : `./scripts/test.sh`.
+Aperçu de l'interface sans clic : `ClaudeUsageBar --snapshot /tmp/popover.png [--settings]`.
+
+---
+
 # ClaudeUsageBar
 
 > Track your Claude.ai usage right from your Mac menu bar!
