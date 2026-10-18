@@ -11,7 +11,7 @@ enum Snapshot {
     }
 
     static func write(view: some View, to path: String, size: NSSize) {
-        let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+        let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height).background(Color(white: 0.11)))
         hosting.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.contentView = hosting
