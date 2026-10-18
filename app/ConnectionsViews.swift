@@ -9,7 +9,9 @@ struct ConsoleCreditsTile: View {
         value.formatted(.currency(code: balance.currency))
     }
 
+    /// Part consommée des crédits promo si on la connaît, sinon dépense du cycle rapportée au solde.
     private var usedFraction: Double {
+        if let promo = balance.promoUsedFraction { return promo }
         guard let spent = balance.spentThisPeriod, spent + balance.balance > 0 else { return 0 }
         return min(spent / (spent + balance.balance), 1)
     }
@@ -28,7 +30,8 @@ struct ConsoleCreditsTile: View {
             }
             UsageBar(value: usedFraction, color: usedFraction < 0.9 ? .accentColor : .orange)
             HStack {
-                Text("\(money(balance.balance)) restants")
+                Text(balance.promoGranted.map { "\(money(balance.balance)) restants sur \(money($0))" }
+                     ?? "\(money(balance.balance)) restants")
                     .font(.caption)
                 Spacer()
                 if let perDay = balance.dailyBudget() {
@@ -37,8 +40,13 @@ struct ConsoleCreditsTile: View {
                         .foregroundColor(Color.secondaryText)
                 }
             }
+            if let name = balance.promoName {
+                Text(name)
+                    .font(.caption2)
+                    .foregroundColor(Color.secondaryText)
+            }
             if let spent = balance.spentThisPeriod {
-                Text("\(money(spent)) dépensés ce cycle")
+                Text("\(money(spent)) dépensés ce mois")
                     .font(.caption2)
                     .foregroundColor(Color.secondaryText)
             }

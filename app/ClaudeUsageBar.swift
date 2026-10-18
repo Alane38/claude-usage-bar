@@ -126,7 +126,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     // Données fictives pour l'aperçu uniquement : jamais écrites ailleurs que dans l'image.
                     let deadline = Date().addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,
-                                                                      periodResetsAt: deadline, nextExpiry: deadline)
+                                                                      periodResetsAt: deadline, nextExpiry: deadline,
+                                                                      promoGranted: 100, promoName: "API credit (Max 5x)")
                     self.usageManager.consoleUpdatedAt = Date().addingTimeInterval(-120)
                 }
                 if CommandLine.arguments.contains("--settings") {

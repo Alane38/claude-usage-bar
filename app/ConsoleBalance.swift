@@ -2,6 +2,7 @@ import Foundation
 
 /// Solde des crédits API (Console), lu sur `platform.claude.com/api/organizations/{org}/prepaid/credits`
 /// et `current_spend`. Endpoints non documentés : le parsing reste tolérant et renvoie nil si `amount` manque.
+/// Format réel observé : `amount` (centimes) = achetés + promotionnels ; les lots promo sont dans `promo_tranches`.
 struct ConsoleBalance: Equatable {
     let balance: Double
     let currency: String
@@ -9,18 +10,31 @@ struct ConsoleBalance: Equatable {
     let periodResetsAt: Date?
     /// Plus proche expiration parmi les lots de crédits (promotionnels inclus), si l'API la donne.
     let nextExpiry: Date?
+    /// Total accordé par les lots promotionnels (ex. 100 $ du plan Max 5x), pour mesurer la part consommée.
+    let promoGranted: Double?
+    let promoName: String?
+
+    /// Part des crédits promotionnels déjà consommée, de 0 à 1.
+    var promoUsedFraction: Double? {
+        guard let granted = promoGranted, granted > 0 else { return nil }
+        return min(max((granted - balance) / granted, 0), 1)
+    }
 
     static func parse(credits: Data, spend: Data?, now: Date = Date()) -> ConsoleBalance? {
         guard let root = try? JSONSerialization.jsonObject(with: credits) as? [String: Any],
               let amountMinor = number(root["amount"]) else { return nil }
 
         let spendRoot = spend.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        let promoLots = (root["promo_tranches"] as? [[String: Any]]) ?? []
+        let granted = promoLots.compactMap { number($0["granted_amount_minor_units"]) }.reduce(0, +)
         return ConsoleBalance(
             balance: amountMinor / 100,
             currency: (root["currency"] as? String) ?? "USD",
             spentThisPeriod: number(spendRoot?["amount"]).map { $0 / 100 },
             periodResetsAt: date(spendRoot?["resets_at"]),
-            nextExpiry: earliestExpiry(in: root, after: now))
+            nextExpiry: date(root["next_expires_at"]).flatMap { $0 > now ? $0 : nil } ?? earliestExpiry(in: root, after: now),
+            promoGranted: granted > 0 ? granted / 100 : nil,
+            promoName: promoLots.compactMap { $0["name"] as? String }.first)
     }
 
     /// Jours avant la prochaine échéance connue : expiration des crédits, à défaut fin de période de dépense.

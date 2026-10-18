@@ -132,4 +132,21 @@ check(SyncHelpers.age(since: now.addingTimeInterval(-3 * 3600), now: now) == "il
 check(SyncHelpers.age(since: now.addingTimeInterval(-2 * 86400), now: now) == "il y a 2 j", "âge : jours")
 check(SyncHelpers.isStale(now.addingTimeInterval(-11 * 60), now: now) && !SyncHelpers.isStale(now.addingTimeInterval(-9 * 60), now: now), "âge : périmé après 10 min")
 
+// --- Réponse réelle de la Console (Max 5x, identifiants retirés) ---
+let realCredits = Data("""
+{"amount":10000,"currency":"USD","balance":{"money":null,"credits":{"amount_minor":10000,"exponent":2}},"balance_credits":100,"amount_without_scoped_credits":0,"auto_reload_settings":null,"tranches":[],"promo_tranches":[{"remaining_amount_minor_units":10000,"currency":"USD","expires_at":"2026-11-05T00:00:00Z","granted_amount_minor_units":10000,"granted_at":"2026-10-18T20:15:36.082000Z","program_id":"subscription_api_credit","name":"API credit (Max 5x)"}],"next_expires_at":"2026-11-05T00:00:00Z"}
+""".utf8)
+let realSpend = Data("{\"amount\":0,\"resets_at\":\"2026-11-01T00:00:00Z\"}".utf8)
+let realNow = ISO8601DateFormatter().date(from: "2026-10-18T20:30:00Z")!
+let real = ConsoleBalance.parse(credits: realCredits, spend: realSpend, now: realNow)
+check(real?.balance == 100 && real?.promoGranted == 100, "réel : 100 $ restants sur 100 $ accordés")
+check(real?.promoUsedFraction == 0 && real?.spentThisPeriod == 0, "réel : rien consommé")
+check(real?.promoName == "API credit (Max 5x)", "réel : nom du programme")
+check(real?.nextExpiry == ISO8601DateFormatter().date(from: "2026-11-05T00:00:00Z") && real?.daysLeft(now: realNow) == 18, "réel : échéance 05/11, 18 jours")
+check(abs((real?.dailyBudget(now: realNow) ?? 0) - 100.0 / 18) < 0.001, "réel : ≈ 5,56 $/jour")
+let partial = ConsoleBalance.parse(credits: Data(String(decoding: realCredits, as: UTF8.self)
+    .replacingOccurrences(of: "\"amount\":10000", with: "\"amount\":6250")
+    .replacingOccurrences(of: "\"remaining_amount_minor_units\":10000", with: "\"remaining_amount_minor_units\":6250").utf8), spend: nil, now: realNow)
+check(partial?.balance == 62.5 && partial?.promoUsedFraction == 0.375, "réel : 37,5 % consommés")
+
 exit(failures == 0 ? 0 : 1)
