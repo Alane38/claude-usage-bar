@@ -99,10 +99,16 @@ struct DisplaySettingsView: View {
 
             Divider()
 
-            Text("Crédits API (Max / Team)")
+            Text("Crédits API")
                 .font(.caption.weight(.semibold))
-            if usageManager.apiCreditCycleEnd == nil {
-                Button("Activer la tuile crédits") {
+            if !usageManager.consoleCookie.isEmpty {
+                Text(usageManager.consoleBalance == nil
+                     ? "Console connectée : le solde s'affichera au prochain rafraîchissement."
+                     : "Lus en direct sur la Console, rien à saisir.")
+                    .font(.caption2)
+                    .foregroundColor(Color.secondaryText)
+            } else if usageManager.apiCreditCycleEnd == nil {
+                Button("Saisie manuelle (sans connexion Console)") {
                     usageManager.apiCreditCycleEnd = Date().addingTimeInterval(30 * 86400)
                     usageManager.saveDisplaySettings()
                 }
@@ -139,7 +145,7 @@ struct DisplaySettingsView: View {
             set: { usageManager.apiCreditCycleEnd = $0; usageManager.saveDisplaySettings() }
         ), displayedComponents: .date)
         .font(.caption)
-        Text("Aucun endpoint public ne donne le solde : relève « Promotional credits » sur platform.claude.com/settings/billing.")
+        Text("Repli manuel : relève « Solde restant » sur platform.claude.com/settings/billing, ou connecte la Console pour le lire en direct.")
             .font(.caption2)
             .foregroundColor(Color.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
