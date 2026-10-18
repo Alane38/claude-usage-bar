@@ -18,7 +18,7 @@ cp app/ClaudeUsageBar.icns "$APP/Contents/Resources/"
 echo -n "APPL????" > "$APP/Contents/PkgInfo"
 
 swiftc -parse-as-library -sdk "$SDK" -target arm64-apple-macos13.0 \
-    -o "$APP/Contents/MacOS/ClaudeUsageBar" app/ClaudeUsageBar.swift \
+    -o "$APP/Contents/MacOS/ClaudeUsageBar" app/*.swift \
     -framework SwiftUI -framework AppKit -framework WebKit
 
 xattr -cr "$APP"

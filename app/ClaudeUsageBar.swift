@@ -587,11 +587,35 @@ class UsageManager: ObservableObject {
         }.resume()
     }
 
+    /// Applique les limites lues dans le statusline de Claude Code. Retourne false si la source est absente.
+    @discardableResult
+    func applyStatuslineUsage() -> Bool {
+        guard let usage = StatuslineUsage.load() else { return false }
+        if let session = usage.fiveHour {
+            sessionUsage = Int(session.usedPercentage)
+            sessionResetsAt = session.resetsAt
+        }
+        if let weekly = usage.sevenDay {
+            weeklyUsage = Int(weekly.usedPercentage)
+            weeklyResetsAt = weekly.resetsAt
+        }
+        lastUpdated = usage.capturedAt
+        errorMessage = nil
+        hasFetchedData = true
+        updatePercentages()
+        updateStatusBar()
+        return true
+    }
+
     func fetchUsage() {
+        // Sans cookie, le statusline suffit ; avec cookie, il sert de repli si le réseau échoue.
+        let hasStatusline = applyStatuslineUsage()
         guard !sessionCookie.isEmpty else {
-            DispatchQueue.main.async {
-                self.errorMessage = "Session cookie not set"
-                self.updateStatusBar()
+            if !hasStatusline {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Session cookie not set"
+                    self.updateStatusBar()
+                }
             }
             return
         }
