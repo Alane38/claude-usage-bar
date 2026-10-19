@@ -6,6 +6,7 @@ extension DayBudget {
         case .ok: return .ok
         case .close: return .warning
         case .over: return .danger
+        case .exception: return .stale
         }
     }
 }

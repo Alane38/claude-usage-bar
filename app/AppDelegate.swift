@@ -152,6 +152,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage),
                                                                           hours: Snapshot.option("--history-hours").flatMap(Double.init) ?? 24)
                     self.usageManager.usedTodayOverride = Snapshot.option("--used-today").flatMap(Double.init)
+                    if CommandLine.arguments.contains("--exceptional") { self.usageManager.exceptionOverride = true }
                     self.usageManager.updatePercentages()
                     let deadline = Date().addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,

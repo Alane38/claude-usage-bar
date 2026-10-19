@@ -2,6 +2,11 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.9.1 : 19 octobre 2026
+
+### Ajouté
+- **Jour exceptionnel** : un jour déclaré exceptionnel (développement intensif, journée de rattrapage) garde sa consommation affichée mais sans jaune, sans rouge ni « dépassé » : « Aujourd'hui : 45 % sur 39 % conseillés · jour exceptionnel ». Les jours se déclarent dans le réglage `exceptional_days` (liste de dates AAAA-MM-JJ), sans bouton pour l'instant.
+
 ## 1.9.0 : 19 octobre 2026
 
 ### Ajouté

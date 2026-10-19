@@ -82,6 +82,7 @@ class UsageManager: ObservableObject {
     var checksForUpdates = true
     /// Aperçus uniquement (`--used-today`) : remplace la consommation du jour lue dans l'historique.
     var usedTodayOverride: Double?
+    var exceptionOverride: Bool?
     var lastUpdateCheck: Date?
     weak var delegate: AppDelegate?
     var lastNotifiedThreshold: Int = 0
