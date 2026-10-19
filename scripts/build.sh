@@ -28,7 +28,7 @@ echo -n "APPL????" > "$APP/Contents/PkgInfo"
 
 swiftc -parse-as-library ${MODE_FLAGS[@]+"${MODE_FLAGS[@]}"} -sdk "$SDK" -target arm64-apple-macos13.0 \
     -o "$APP/Contents/MacOS/ClaudeUsageBar" app/*.swift \
-    -framework SwiftUI -framework AppKit -framework WebKit
+    -framework SwiftUI -framework AppKit -framework WebKit -framework UserNotifications
 
 xattr -cr "$APP"
 # Identité stable : même règle de signature à chaque build, donc macOS garde les autorisations

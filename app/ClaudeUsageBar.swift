@@ -25,7 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var hotKeyRef: EventHotKeyRef?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // NSUserNotification (deprecated but works without permissions for unsigned apps)
+        Notifier.install()
         NSLog("✅ App launched, notifications ready")
 
         // Create status bar item with variable length for compact display
@@ -87,6 +87,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // Limites, crédits Console et statut Anthropic : une fois par minute (5 min dans l'original),
         // ralenti à 5 min tant que l'API refuse (voir RefreshPolicy).
         scheduleRefresh()
+
+        if CommandLine.arguments.contains("--test-notification") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.usageManager.sendTestNotification() }
+        }
 
         if CommandLine.arguments.contains("--diagnose") {
             print("diagnostic : cookie claude.ai en mémoire =", !usageManager.sessionCookie.isEmpty,
@@ -1154,24 +1158,16 @@ class UsageManager: ObservableObject {
     }
 
     func sendNotification(percentage: Int, threshold: Int) {
-        let notification = NSUserNotification()
-        notification.title = "Claude Usage Alert"
-        notification.informativeText = "You've reached \(percentage)% of your 5-hour session limit"
-        notification.soundName = NSUserNotificationDefaultSoundName
-
-        NSUserNotificationCenter.default.deliver(notification)
+        Notifier.send(title: "Session Claude à \(percentage) %",
+                      body: "Tu as consommé \(percentage) % de ta session de 5 h.",
+                      id: "threshold-\(threshold)")
         NSLog("📬 Sent notification for \(threshold)% threshold")
     }
 
     func sendTestNotification() {
         NSLog("🔔 Test notification button clicked")
 
-        let notification = NSUserNotification()
-        notification.title = "Claude Usage Alert"
-        notification.informativeText = "Test notification - You've reached 75% of your 5-hour session limit"
-        notification.soundName = NSUserNotificationDefaultSoundName
-
-        NSUserNotificationCenter.default.deliver(notification)
+        Notifier.send(title: "Notification de test", body: "Les alertes de ClaudeUsageBar fonctionnent.")
         NSLog("📬 Test notification sent successfully")
     }
 
@@ -1384,16 +1380,11 @@ class StatusManager: ObservableObject {
     private func notifyStatusChange(to indicator: String, description: String) {
         guard UserDefaults.standard.bool(forKey: "status_notifications_enabled") else { return }
 
-        let notification = NSUserNotification()
         if indicator == "none" {
-            notification.title = "Claude is back online"
-            notification.informativeText = "All systems operational"
+            Notifier.send(title: "Claude est de nouveau en ligne", body: "Tous les services fonctionnent.", id: "status-change")
         } else {
-            notification.title = "Claude status: \(description)"
-            notification.informativeText = "Visit status.anthropic.com for details"
+            Notifier.send(title: "Statut Claude : \(description)", body: "Détails sur status.claude.com.", id: "status-change")
         }
-        notification.soundName = NSUserNotificationDefaultSoundName
-        NSUserNotificationCenter.default.deliver(notification)
         NSLog("📬 Sent status-change notification: \(indicator)")
     }
 }
