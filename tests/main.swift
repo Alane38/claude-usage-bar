@@ -172,4 +172,36 @@ for code in [401, 403, 500, 503] {
 var untouched = RefreshPolicy(); untouched.record(statusCode: nil)
 check(!untouched.isSlowed, "cadence : pas de réponse au départ -> reste à 60 s")
 
+// --- Styles et tonalités ---
+check(PopoverLayout(rawValue: "cards") == .cards && PopoverLayout(rawValue: "inconnu") == nil, "style : disposition relue depuis sa clé")
+check(MenuBarStyle.allCases.count == 3, "style : trois dessins de barre de menu")
+check(UsageTone.of(percent: 8, pace: .under, isStale: false) == .ok, "tonalité : 8 % sous le rythme -> ok")
+check(UsageTone.of(percent: 60, pace: .over, isStale: false) == .warning, "tonalité : trop vite -> avertissement")
+check(UsageTone.of(percent: 74, pace: .onTrack, isStale: false) == .warning, "tonalité : 74 % -> avertissement")
+check(UsageTone.of(percent: 95, pace: .onTrack, isStale: false) == .danger, "tonalité : 95 % -> danger")
+check(UsageTone.of(percent: 95, pace: .over, isStale: true) == .stale, "tonalité : donnée ancienne -> neutre")
+check(UsageTone.worst([.ok, .warning, .stale]) == .warning && UsageTone.worst([.stale, .ok]) == .stale && UsageTone.worst([]) == .ok, "tonalité : la plus grave l'emporte")
+let ring = RingGeometry.dash(percent: 25, radius: 10)
+check(abs(ring.on - 15.708) < 0.001 && abs(ring.on + ring.off - 62.832) < 0.001, "anneau : 25 % d'un cercle de rayon 10")
+check(RingGeometry.dash(percent: 150, radius: 10).off == 0 && RingGeometry.dash(percent: -5, radius: 10).on == 0, "anneau : pourcentage borné")
+
+// --- Titre de la barre de menu selon le style ---
+let ringTitle = MenuBarDisplay.state(style: .dualRing, mode: .worst, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, now: now)
+check(ringTitle.title == " 8% · 2h14" && ringTitle.percent == 8, "barre : double anneau = session + reset")
+let twoTitle = MenuBarDisplay.state(style: .twoValues, mode: .session, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, now: now)
+check(twoTitle.title == " 8 · 37" && twoTitle.percent == 37, "barre : deux valeurs, la plus haute pilote la couleur")
+
+// --- Résumé des crédits ---
+let summaryLive = CreditsSummary.make(console: real, manual: nil, now: realNow)
+check(summaryLive?.title == "Crédits API · Max 5x" && summaryLive?.valueText == "100 $", "crédits : titre court et montant")
+check(summaryLive?.detail == "Expirent dans 18 j · ≈ 5,56 $ par jour", "crédits : échéance et budget par jour en français")
+check(summaryLive?.usedFraction == 0, "crédits : rien consommé")
+let manualCredits = ApiCredits(monthlyAmount: 100, spent: 40, cycleEndsAt: now.addingTimeInterval(10 * 86400 - 3600))
+let summaryManual = CreditsSummary.make(console: nil, manual: manualCredits, now: now)
+check(summaryManual?.valueText == "60 $" && summaryManual?.usedFraction == 0.4, "crédits manuels : reste et part consommée")
+check(summaryManual?.title == "Crédits API (saisie manuelle)", "crédits manuels : source indiquée")
+check(CreditsSummary.make(console: nil, manual: nil) == nil, "crédits : rien à afficher sans source")
+check(CreditsSummary.make(console: real, manual: manualCredits, now: realNow)?.title == "Crédits API · Max 5x", "crédits : la Console prime sur la saisie")
+check(CreditsSummary.money(87.5, "USD") == "87,5 $" && CreditsSummary.money(12, "EUR") == "12 EUR", "crédits : formatage des montants")
+
 exit(failures == 0 ? 0 : 1)

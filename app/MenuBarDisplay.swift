@@ -20,22 +20,35 @@ struct MenuBarState: Equatable {
 }
 
 enum MenuBarDisplay {
-    static func state(mode: MenuBarMode,
+    /// Titre à droite de l'icône. Le mode (session, hebdo, la plus haute) ne vaut que pour l'étincelle :
+    /// les deux autres styles montrent déjà session et semaine dans leur dessin.
+    static func state(style: MenuBarStyle = .spark, mode: MenuBarMode,
                       sessionPercent: Int, sessionResetsAt: Date?,
                       weeklyPercent: Int, weeklyResetsAt: Date?,
                       showReset: Bool, now: Date = Date()) -> MenuBarState {
-        let showsWeekly: Bool
-        switch mode {
-        case .session: showsWeekly = false
-        case .weekly:  showsWeekly = true
-        case .worst:   showsWeekly = weeklyPercent > sessionPercent
+        var title: String
+        var percent = sessionPercent
+        var resetsAt = sessionResetsAt
+
+        switch style {
+        case .dualRing:
+            title = " \(sessionPercent)%"
+        case .twoValues:
+            title = " \(sessionPercent) · \(weeklyPercent)"
+            percent = max(sessionPercent, weeklyPercent)
+        case .spark:
+            let showsWeekly: Bool
+            switch mode {
+            case .session: showsWeekly = false
+            case .weekly:  showsWeekly = true
+            case .worst:   showsWeekly = weeklyPercent > sessionPercent
+            }
+            percent = showsWeekly ? weeklyPercent : sessionPercent
+            resetsAt = showsWeekly ? weeklyResetsAt : sessionResetsAt
+            title = " \(percent)%"
+            if mode == .worst { title += showsWeekly ? " 7j" : " 5h" }
         }
 
-        let percent = showsWeekly ? weeklyPercent : sessionPercent
-        let resetsAt = showsWeekly ? weeklyResetsAt : sessionResetsAt
-
-        var title = " \(percent)%"
-        if mode == .worst { title += showsWeekly ? " 7j" : " 5h" }
         if showReset, let resetsAt {
             title += " · \(countdown(to: resetsAt, now: now))"
         }

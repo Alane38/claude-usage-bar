@@ -10,6 +10,13 @@ enum Snapshot {
         return args[flag + 1]
     }
 
+    /// Valeur d'une option `--nom valeur` (vérifications visuelles, jamais enregistrée dans les réglages).
+    static func option(_ name: String) -> String? {
+        let args = CommandLine.arguments
+        guard let flag = args.firstIndex(of: name), flag + 1 < args.count else { return nil }
+        return args[flag + 1]
+    }
+
     static func write(view: some View, to path: String, size: NSSize) {
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height).background(Color(white: 0.11)))
         hosting.frame = NSRect(origin: .zero, size: size)

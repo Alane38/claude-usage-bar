@@ -7,6 +7,7 @@ extension UsageManager {
     private static let claudeAccount = "claude_session_cookie"
 
     func loadConsoleCookie() {
+        guard !CommandLine.arguments.contains("--no-keychain") else { return }
         consoleCookie = Self.sessionKeychain.read(account: Self.consoleAccount) ?? ""
     }
 
