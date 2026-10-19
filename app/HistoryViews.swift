@@ -22,17 +22,15 @@ struct HistoryChart: View {
                 context.stroke(guide, with: .color(.primary.opacity(0.12)), style: StrokeStyle(lineWidth: 0.5, dash: [3, 4]))
             }
             var path = Path()
-            var previous: Double?
+            var previous: (time: Date, percent: Double)?
             for point in points {
                 let location = position(point)
-                if let previous, previous - point.percent > UsageAnalytics.resetDropThreshold {
-                    path.move(to: location)
-                } else if previous == nil {
-                    path.move(to: location)
-                } else {
+                if let previous, !UsageAnalytics.breaksLine(from: previous, to: point) {
                     path.addLine(to: location)
+                } else {
+                    path.move(to: location)
                 }
-                previous = point.percent
+                previous = point
             }
             context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
         }
@@ -49,13 +47,19 @@ struct HistoryDisclosure: View {
         UsageAnalytics.series(usageManager.historySamples, series: .session)
     }
 
+    /// Durée affichée : celle de l'historique réellement disponible (1, 3, 6, 12 ou 24 h).
+    private var hours: Double {
+        guard let first = points.first else { return 24 }
+        return UsageAnalytics.chartHours(forSpan: Date().timeIntervalSince(first.time))
+    }
+
     var body: some View {
         if points.count >= 10 {
-            DisclosureGroup("Historique · 24 h", isExpanded: $isOpen) {
+            DisclosureGroup("Historique · \(Int(hours)) h", isExpanded: $isOpen) {
                 VStack(alignment: .leading, spacing: 6) {
-                    HistoryChart(points: points, hours: 24, color: usageManager.sessionTone.color)
+                    HistoryChart(points: points, hours: hours, color: usageManager.sessionTone.color)
                     HStack {
-                        Text("il y a 24 h").font(.system(size: 10)).foregroundColor(Color.secondaryText)
+                        Text("il y a \(Int(hours)) h").font(.system(size: 10)).foregroundColor(Color.secondaryText)
                         Spacer()
                         Text("session · maintenant").font(.system(size: 10)).foregroundColor(Color.secondaryText)
                     }

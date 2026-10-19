@@ -57,6 +57,19 @@ enum UsageAnalytics {
         }
     }
 
+    /// Vrai quand le tracé doit être interrompu entre deux relevés : remise à zéro, ou trou de données (app fermée,
+    /// Mac en veille). Relier ces points dessinerait une pente qui n'a jamais existé.
+    static func breaksLine(from previous: (time: Date, percent: Double), to next: (time: Date, percent: Double),
+                           maxGap: TimeInterval = 30 * 60) -> Bool {
+        previous.percent - next.percent > resetDropThreshold || next.time.timeIntervalSince(previous.time) > maxGap
+    }
+
+    /// Échelle de la courbe : la plus petite durée ronde (1, 3, 6, 12 ou 24 h) qui contient tout l'historique disponible.
+    /// Avec 3 h de relevés, un axe de 24 h écraserait la courbe dans un coin.
+    static func chartHours(forSpan span: TimeInterval) -> Double {
+        [1.0, 3.0, 6.0, 12.0].first { span <= $0 * 3600 } ?? 24
+    }
+
     /// Série des dernières heures pour la courbe.
     static func series(_ samples: [UsageSample], series: UsageSeries, hours: Double = 24,
                        now: Date = Date()) -> [(time: Date, percent: Double)] {

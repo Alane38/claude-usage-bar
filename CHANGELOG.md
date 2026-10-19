@@ -2,6 +2,12 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.6.4 : 19 octobre 2026
+
+### Corrigé
+- **Courbe d'historique écrasée dans un coin** quand l'historique est jeune : l'échelle s'adapte maintenant à la durée disponible (1, 3, 6, 12 ou 24 h) et le titre l'indique (« Historique · 3 h »).
+- Le tracé est **interrompu à chaque trou de plus de 30 minutes** (app fermée, veille) : plus de longue pente entre deux relevés distants.
+
 ## 1.6.3 : 19 octobre 2026
 
 ### Corrigé

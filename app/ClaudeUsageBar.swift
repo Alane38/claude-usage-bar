@@ -132,6 +132,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.browserAccessDenied = true
                     self.usageManager.browserImportReport = "macOS bloque la lecture de ton navigateur : ClaudeUsageBar a besoin de l'Accès complet au disque."
                 }
+                if CommandLine.arguments.contains("--real-history") {
+                    // Aperçu avec le vrai historique de l'utilisateur (lecture seule).
+                    self.usageManager.historySamples = self.usageManager.history.load(since: Date().addingTimeInterval(-24 * 3600))
+                    self.usageManager.hasFetchedData = true
+                }
                 if CommandLine.arguments.contains("--demo") {
                     // Données fictives pour l'aperçu uniquement : jamais écrites ailleurs que dans l'image.
                     self.usageManager.sessionUsage = Snapshot.option("--session").flatMap(Int.init) ?? 8
@@ -140,7 +145,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.weeklyResetsAt = Date().addingTimeInterval(2 * 86400 + 14 * 3600)
                     self.usageManager.lastUpdated = Date()
                     self.usageManager.hasFetchedData = true
-                    self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage))
+                    self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage),
+                                                                          hours: Snapshot.option("--history-hours").flatMap(Double.init) ?? 24)
                     self.usageManager.updatePercentages()
                     let deadline = Date().addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,
