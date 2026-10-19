@@ -45,7 +45,10 @@ extension UsageManager {
     }
 
     var sessionRecentRate: Double? { UsageAnalytics.recentRate(historySamples, series: .session) }
-    var weeklyRecentRate: Double? { UsageAnalytics.recentRate(historySamples, series: .weekly, lookback: 3 * 3600) }
+    /// Sur 24 h au moins 12 h observées : les nuits comptent, sinon on extrapolerait l'activité de la journée à tout le reste.
+    var weeklyRecentRate: Double? {
+        UsageAnalytics.recentRate(historySamples, series: .weekly, lookback: 24 * 3600, minElapsed: 12 * 3600)
+    }
     var weeklyUsedToday: Double? { UsageAnalytics.usedToday(historySamples, series: .weekly) }
 
     var sessionRecentForecast: RecentForecast? {

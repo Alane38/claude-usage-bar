@@ -2,6 +2,12 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.6.3 : 19 octobre 2026
+
+### Corrigé
+- **Fausse alerte « limite de la semaine »** : le rythme hebdomadaire se calculait sur les 3 dernières heures, donc une rafale de travail était extrapolée à toute la semaine, nuits comprises (4,7 %/h tenus 35 h, alors que la projection sur la semaine donnait 71 %). Il se calcule maintenant sur **24 h avec au moins 12 h d'observation** ; en dessous, l'app utilise la moyenne de la semaine.
+- Les messages disent qu'il s'agit d'une hypothèse (« si ça continue ») et donnent la **période de blocage** (« de mardi à 2 h 26 à mercredi à 14 h 00, soit environ 35 h »).
+
 ## 1.6.2 : 19 octobre 2026
 
 ### Modifié

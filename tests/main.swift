@@ -314,7 +314,7 @@ check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(300); $0.
 check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }, sent: [burning[0].key]).isEmpty, "alerte : déjà envoyée -> rien (dédoublonnage)")
 check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }, off: [.willExhaust]).isEmpty, "alerte : réglage désactivé -> rien")
 let weeklyBurn = run(context { $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 20) })
-check(weeklyBurn.first?.title.hasPrefix("Limite de la semaine atteinte") == true, "alerte : semaine à 100 % annoncée")
+check(weeklyBurn.first?.title.hasPrefix("Semaine : limite atteinte") == true, "alerte : semaine à 100 % annoncée")
 
 let unusedSession = run(context { $0.sessionPercent = 40; $0.sessionResetsAt = later(20) })
 check(unusedSession.first?.title == "Reset dans 20 min, 60 % inutilisés", "alerte : part de session inutilisée")
@@ -402,16 +402,24 @@ check(AlertRules.formatRate(3.4) == "3,4" && AlertRules.formatRate(12.4) == "12"
 let detailed = run(context {
     $0.sessionPercent = 61; $0.sessionResetsAt = later(120); $0.sessionETA = later(40); $0.sessionRatePerHour = 40
 })
-check(detailed.first?.body.contains("environ 40 % par heure") == true && detailed.first?.body.contains("bloqué 1 h 20") == true && detailed.first?.body.contains("reset de") == true, "alerte session : rythme et durée de blocage")
+check(detailed.first?.body.contains("Si tu gardes ce rythme (environ 40 % par heure)") == true && detailed.first?.body.contains("bloqué 1 h 20") == true && detailed.first?.body.contains("reset de") == true, "alerte session : hypothèse, rythme et durée de blocage")
 let weeklyDetailed = run(context {
     $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 10)
     $0.weeklyRatePerHour = 3.4; $0.weeklyBudgetPerDay = 26
 })
-check(weeklyDetailed.first?.body.contains("3,4 % par heure") == true && weeklyDetailed.first?.body.contains("bloqué environ 38 h") == true && weeklyDetailed.first?.body.contains("ne dépasse pas 26 % par jour") == true, "alerte hebdo : rythme, durée de blocage et budget par jour")
-check(weeklyDetailed.first?.title.contains("Limite de la semaine atteinte") == true, "alerte hebdo : le titre dit qu'il s'agit de la limite hebdomadaire")
+check(weeklyDetailed.first?.body.contains("Ces dernières 24 h") == true && weeklyDetailed.first?.body.contains("3,4 % par heure") == true && weeklyDetailed.first?.body.contains("Si ça continue, tu seras bloqué de") == true && weeklyDetailed.first?.body.contains("environ 38 h") == true && weeklyDetailed.first?.body.contains("ne dépasse pas 26 % par jour") == true, "alerte hebdo : hypothèse, période de blocage et budget par jour")
+check(weeklyDetailed.first?.title.contains("Semaine : limite atteinte") == true && weeklyDetailed.first?.title.hasSuffix("si ça continue") == true, "alerte hebdo : le titre dit la limite concernée et qu'il s'agit d'une hypothèse")
 let bare = run(context { $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 10) })
 check(bare.first?.body.contains("par heure") == false && bare.first?.body.contains("par jour") == false, "alerte hebdo : sans rythme ni budget, pas de chiffre inventé")
 let justAfterMidnight = Calendar.current.date(bySettingHour: 0, minute: 3, second: 0, of: Date())!
 check(AlertRules.clock(justAfterMidnight) == "0 h 03", "heure : pas de zéro initial (0 h 03)")
+
+// --- Rythme hebdomadaire : une rafale ne doit pas être extrapolée ---
+let burst = (0...180).map { sample(Double($0), w: 40 + Double($0) * 0.08) }   // +14,4 points en 3 h
+check(UsageAnalytics.recentRate(burst, series: .weekly, now: at(180), lookback: 24 * 3600, minElapsed: 12 * 3600) == nil, "rythme hebdo : 3 h d'observation ne suffisent pas (pas d'extrapolation)")
+check(UsageAnalytics.recentRate(burst, series: .weekly, now: at(180), lookback: 3 * 3600) != nil, "rythme : sans durée minimale, la rafale donnait bien un rythme élevé (ancien défaut)")
+let fullDay = (0...30).map { sample(Double($0) * 60, w: 20 + Double($0) * 1.0) }   // 30 points sur 30 h
+let dayRate = UsageAnalytics.recentRate(fullDay, series: .weekly, now: at(30 * 60), lookback: 24 * 3600, minElapsed: 12 * 3600)
+check(abs((dayRate ?? 0) - 1.0) < 0.01, "rythme hebdo : une journée complète donne la vraie moyenne (1 %/h)")
 
 exit(failures == 0 ? 0 : 1)

@@ -73,20 +73,20 @@ enum AlertRules {
         if let eta = c.sessionETA, let resetsAt = c.sessionResetsAt, c.sessionPercent >= 25, c.sessionPercent < 100,
            eta > c.now, eta < resetsAt, eta.timeIntervalSince(c.now) <= 90 * 60 {
             let imminent = eta.timeIntervalSince(c.now) <= 15 * 60
-            let rate = c.sessionRatePerHour.map { "tu consommes environ \(Int($0.rounded())) % par heure. " } ?? ""
+            let rate = c.sessionRatePerHour.map { " (environ \(Int($0.rounded())) % par heure)" } ?? ""
             result.append(AlertMessage(
                 kind: .willExhaust, key: "exhaust-session-\(minute(resetsAt))\(imminent ? "-imminent" : "")",
                 title: imminent ? "Limite de session dans \(minutesLeft(until: eta, from: c.now)) min" : "Tu atteindras 100 % de la session vers \(clock(eta))",
-                body: "Tu es à \(Int(c.sessionPercent.rounded())) % et \(rate)Tu serais bloqué \(duration(resetsAt.timeIntervalSince(eta))), jusqu'au reset de \(clock(resetsAt)). Ralentis un peu pour tenir."))
+                body: "Si tu gardes ce rythme\(rate), tu es à \(Int(c.sessionPercent.rounded())) % maintenant et tu seras bloqué \(duration(resetsAt.timeIntervalSince(eta))), jusqu'au reset de \(clock(resetsAt)). Ralentis un peu pour tenir."))
         }
         if let eta = c.weeklyETA, let resetsAt = c.weeklyResetsAt, c.weeklyPercent >= 40, c.weeklyPercent < 100,
            eta > c.now, eta < resetsAt, eta.timeIntervalSince(c.now) <= 36 * 3600 {
-            let rate = c.weeklyRatePerHour.map { "Tu consommes environ \(formatRate($0)) % par heure. " } ?? ""
+            let rate = c.weeklyRatePerHour.map { "Ces dernières 24 h, tu consommes en moyenne \(formatRate($0)) % par heure. " } ?? ""
             let advice = c.weeklyBudgetPerDay.map { " Pour tenir, ne dépasse pas \(Int($0.rounded())) % par jour." } ?? ""
             result.append(AlertMessage(
                 kind: .willExhaust, key: "exhaust-weekly-\(minute(resetsAt))-\(day(c.now))",
-                title: "Limite de la semaine atteinte \(dayAndClock(eta))",
-                body: "\(rate)À ce rythme tu seras bloqué environ \(duration(resetsAt.timeIntervalSince(eta))), jusqu'au reset de \(dayAndClock(resetsAt)).\(advice)"))
+                title: "Semaine : limite atteinte \(dayAndClock(eta)) si ça continue",
+                body: "\(rate)Si ça continue, tu seras bloqué de \(dayAndClock(eta)) à \(dayAndClock(resetsAt)), soit environ \(duration(resetsAt.timeIntervalSince(eta))).\(advice)"))
         }
         return result
     }
