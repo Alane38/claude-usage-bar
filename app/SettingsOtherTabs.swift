@@ -111,6 +111,15 @@ struct AlertsTab: View {
                     set: { usageManager.statusNotificationsEnabled = $0; usageManager.saveSettings() }))
                 Button("Envoyer une notification de test") { usageManager.sendTestNotification() }
             }
+            Section("Alertes anticipées") {
+                ForEach(AlertKind.allCases, id: \.self) { kind in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Toggle(kind.label, isOn: Binding(get: { usageManager.alertSettings.isOn(kind) },
+                                                         set: { usageManager.setAlert(kind, enabled: $0) }))
+                        Text(kind.detail).font(.caption).foregroundColor(.secondary)
+                    }
+                }
+            }
             Section("Services suivis") {
                 Text("Seuls les services cochés déclenchent des alertes et apparaissent dans le popover.")
                     .font(.caption)

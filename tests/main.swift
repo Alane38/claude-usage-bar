@@ -248,4 +248,103 @@ check(bothReset.title == " 8 · 37 · 2h14", "valeur : les deux avec reset de la
 check(MenuBarMode.defaultMode(for: .twoValues) == .both && MenuBarMode.defaultMode(for: .spark) == .session && MenuBarMode.defaultMode(for: .dualRing) == .session, "valeur : défaut par style")
 check(MenuBarMode.allCases.count == 4, "valeur : quatre choix")
 
+// --- Historique et analyses ---
+let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+func at(_ minutes: Double) -> Date { t0.addingTimeInterval(minutes * 60) }
+func sample(_ minutes: Double, s: Double? = nil, w: Double? = nil) -> UsageSample {
+    UsageSample(time: at(minutes).timeIntervalSince1970, session: s, weekly: w)
+}
+let rising = (0...20).map { sample(Double($0), s: 10 + Double($0) * 0.3) }
+let rate = UsageAnalytics.recentRate(rising, series: .session, now: at(20))
+check(abs((rate ?? 0) - 18) < 0.01, "rythme : 6 points en 20 min = 18 %/h")
+check(UsageAnalytics.recentRate(Array(rising.prefix(4)), series: .session, now: at(3)) == nil, "rythme : moins de 5 minutes -> nil")
+check(UsageAnalytics.recentRate((0...10).map { sample(Double($0), s: 40) }, series: .session, now: at(10)) == 0, "rythme : usage immobile -> 0")
+let withReset = [sample(0, s: 90), sample(5, s: 95), sample(10, s: 98), sample(15, s: 2), sample(20, s: 4), sample(25, s: 6), sample(30, s: 8)]
+check(abs((UsageAnalytics.recentRate(withReset, series: .session, now: at(30)) ?? 0) - 24) < 0.01, "rythme : seul le temps après le reset compte")
+check(UsageAnalytics.recentRate([sample(0, w: 5), sample(10, w: 9)], series: .session, now: at(10)) == nil, "rythme : série absente -> nil")
+check(UsageAnalytics.recentRate(rising, series: .session, now: at(300)) == nil, "rythme : relevés trop anciens -> nil")
+
+var utc = Calendar(identifier: .gregorian); utc.timeZone = TimeZone(identifier: "UTC")!
+let midnightBase = utc.startOfDay(for: t0)
+func daySample(_ hours: Double, w: Double) -> UsageSample { UsageSample(time: midnightBase.addingTimeInterval(hours * 3600).timeIntervalSince1970, session: nil, weekly: w) }
+let dayData = [daySample(-2, w: 20), daySample(1, w: 30), daySample(3, w: 33), daySample(5, w: 3), daySample(8, w: 7)]
+check(UsageAnalytics.usedToday(dayData, series: .weekly, now: midnightBase.addingTimeInterval(9 * 3600), calendar: utc) == 7, "aujourd'hui : +3 puis reset ignoré puis +4 = 7 points")
+check(UsageAnalytics.usedToday([daySample(1, w: 30)], series: .weekly, now: midnightBase.addingTimeInterval(2 * 3600), calendar: utc) == nil, "aujourd'hui : un seul relevé -> nil")
+check(UsageAnalytics.series(rising, series: .session, hours: 0.1, now: at(20)).count == 7, "courbe : fenêtre de 6 minutes = 7 points")
+
+let calmForecast = RecentForecast.make(ratePerHour: 20, used: 40, resetsAt: at(120), now: at(0))
+check(calmForecast.projectedPercent == 80 && calmForecast.exhaustsAt == nil, "prévision récente : 40 % + 20 %/h pendant 2 h = 80 %")
+let hotForecast = RecentForecast.make(ratePerHour: 40, used: 40, resetsAt: at(120), now: at(0))
+check(hotForecast.projectedPercent == 120 && hotForecast.exhaustsAt == at(90), "prévision récente : 100 % atteint dans 1 h 30")
+check(RecentForecast.make(ratePerHour: 0, used: 40, resetsAt: at(120), now: at(0)).exhaustsAt == nil, "prévision récente : immobile -> pas d'épuisement")
+
+let historyDir = FileManager.default.temporaryDirectory.appendingPathComponent("cub-hist-\(UUID().uuidString)")
+let history = UsageHistory(url: historyDir.appendingPathComponent("history.jsonl"))
+history.append(sample(-60 * 24 * 10, s: 1, w: 1))
+history.append(sample(-5, s: 10, w: 20))
+history.append(sample(0, s: 12, w: 21))
+if let handle = try? FileHandle(forWritingTo: history.url) { _ = try? handle.seekToEnd(); try? handle.write(contentsOf: Data("ligne illisible\n".utf8)); try? handle.close() }
+check(history.load(since: at(-60)).count == 2, "historique : relevés récents relus, ligne illisible ignorée")
+history.prune(now: at(0))
+check(history.load(since: at(-60 * 24 * 30)).count == 2, "historique : le relevé de 10 jours est purgé")
+check(((try? FileManager.default.attributesOfItem(atPath: history.url.path)[.posixPermissions]) as? Int) == 0o600, "historique : droits 0600")
+try? FileManager.default.removeItem(at: historyDir)
+
+// --- Règles d'alerte ---
+let alertNow = Date(timeIntervalSince1970: 1_800_000_000)
+func later(_ minutes: Double) -> Date { alertNow.addingTimeInterval(minutes * 60) }
+func context(_ edit: (inout AlertContext) -> Void = { _ in }) -> AlertContext {
+    var c = AlertContext(now: alertNow, sessionPercent: 0, sessionResetsAt: nil, sessionETA: nil,
+                         weeklyPercent: 0, weeklyResetsAt: nil, weeklyETA: nil,
+                         previousSessionPercent: nil, consecutiveAuthFailures: 0, credits: nil)
+    edit(&c)
+    return c
+}
+func run(_ c: AlertContext, off: Set<AlertKind> = [], sent: Set<String> = []) -> [AlertMessage] {
+    AlertRules.evaluate(c, settings: AlertSettings(enabled: Set(AlertKind.allCases).subtracting(off)), alreadySent: { sent.contains($0) })
+}
+
+let burning = run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) })
+check(burning.count == 1 && burning[0].kind == .willExhaust && burning[0].title.hasPrefix("Tu atteindras 100 % vers"), "alerte : limite de session annoncée")
+let imminent = run(context { $0.sessionPercent = 90; $0.sessionResetsAt = later(120); $0.sessionETA = later(10) })
+check(imminent.first?.title == "Limite de session dans 10 min" && imminent.first?.key.hasSuffix("-imminent") == true, "alerte : limite imminente (clé distincte)")
+check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(130) }).isEmpty, "alerte : épuisement après le reset -> rien")
+check(run(context { $0.sessionPercent = 10; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }).isEmpty, "alerte : usage trop faible -> rien")
+check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(300); $0.sessionETA = later(200) }).isEmpty, "alerte : échéance trop lointaine -> rien")
+check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }, sent: [burning[0].key]).isEmpty, "alerte : déjà envoyée -> rien (dédoublonnage)")
+check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }, off: [.willExhaust]).isEmpty, "alerte : réglage désactivé -> rien")
+let weeklyBurn = run(context { $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 20) })
+check(weeklyBurn.first?.title.hasPrefix("Semaine à 100 %") == true, "alerte : semaine à 100 % annoncée")
+
+let unusedSession = run(context { $0.sessionPercent = 40; $0.sessionResetsAt = later(20) })
+check(unusedSession.first?.title == "Reset dans 20 min, 60 % inutilisés", "alerte : part de session inutilisée")
+check(run(context { $0.sessionPercent = 5; $0.sessionResetsAt = later(20) }).isEmpty, "alerte : session quasi vide -> rien")
+check(run(context { $0.sessionPercent = 40; $0.sessionResetsAt = later(45) }).isEmpty, "alerte : reset encore loin -> rien")
+let unusedWeekly = run(context { $0.weeklyPercent = 50; $0.weeklyResetsAt = later(4 * 60) })
+check(unusedWeekly.first?.title == "Reset de la semaine dans 4 h, 50 % inutilisés", "alerte : part hebdo inutilisée")
+check(run(context { $0.weeklyPercent = 80; $0.weeklyResetsAt = later(4 * 60) }).isEmpty, "alerte : hebdo presque consommée -> rien")
+
+check(run(context { $0.previousSessionPercent = 98; $0.sessionPercent = 3; $0.sessionResetsAt = later(300) }).first?.kind == .sessionReleased, "alerte : session libérée après la limite")
+check(run(context { $0.previousSessionPercent = 50; $0.sessionPercent = 3 }).isEmpty, "alerte : reset normal sans blocage -> rien")
+check(run(context { $0.consecutiveAuthFailures = 3 }).first?.kind == .sessionExpired, "alerte : session expirée après 3 échecs")
+check(run(context { $0.consecutiveAuthFailures = 2 }).isEmpty, "alerte : 2 échecs -> rien")
+
+func credits(_ amount: Double, daysLeft: Double, used: Double = 0) -> ConsoleBalance {
+    ConsoleBalance(balance: amount, currency: "USD", spentThisPeriod: 0, periodResetsAt: nil,
+                   nextExpiry: later(daysLeft * 24 * 60), promoGranted: 100, promoName: "API credit (Max 5x)")
+}
+let expiring = run(context { $0.credits = credits(100, daysLeft: 4.2) })
+check(expiring.first?.title == "Crédits API : 100 $ expirent dans 5 j" && expiring.first?.key.hasSuffix("-d5") == true, "alerte : crédits à 5 jours")
+check(run(context { $0.credits = credits(100, daysLeft: 0.5) }).first?.title == "Crédits API : 100 $ expirent demain", "alerte : crédits demain")
+check(run(context { $0.credits = credits(100, daysLeft: 12) }).isEmpty, "alerte : crédits encore loin -> rien")
+check(run(context { $0.credits = credits(5, daysLeft: 2) }).isEmpty, "alerte : solde négligeable -> rien")
+check(run(context { $0.credits = credits(8, daysLeft: 2) }).isEmpty, "alerte : moins de 10 $ -> rien")
+
+var ledger = AlertLedger()
+check(!ledger.has("a"), "registre : vide au départ")
+ledger.mark("a", now: alertNow)
+check(ledger.has("a"), "registre : clé marquée")
+ledger.mark("b", now: alertNow.addingTimeInterval(40 * 86400))
+check(!ledger.has("a") && ledger.has("b"), "registre : purge après 30 jours")
+
 exit(failures == 0 ? 0 : 1)

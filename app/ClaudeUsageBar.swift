@@ -88,6 +88,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // ralenti à 5 min tant que l'API refuse (voir RefreshPolicy).
         scheduleRefresh()
 
+        if CommandLine.arguments.contains("--test-alerts") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.usageManager.sendDemoAlerts() }
+        }
+
         if CommandLine.arguments.contains("--test-notification") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.usageManager.sendTestNotification() }
         }
@@ -494,6 +498,13 @@ class UsageManager: ObservableObject {
     var sessionCookie: String = ""
     var consoleCookie: String = ""
     var lastAutoImport: Date?
+    let history = UsageHistory(url: UsageHistory.defaultURL)
+    @Published var historySamples: [UsageSample] = []
+    var lastRecordedAt: Date?
+    var alertLedger = AlertLedger()
+    var consecutiveAuthFailures = 0
+    var previousSessionPercent: Double?
+    @Published var alertSettings = AlertSettings()
     @Published var consoleBalance: ConsoleBalance?
     @Published var consoleUpdatedAt: Date?
     @Published var consoleStatus: String = ""
@@ -510,6 +521,8 @@ class UsageManager: ObservableObject {
         self.statusItem = statusItem
         self.delegate = delegate
         AppSecrets.migrateDevFilesToKeychain()
+        loadHistory()
+        loadAlertState()
         loadSessionCookie()
         loadConsoleCookie()
         loadSettings()
@@ -745,6 +758,8 @@ class UsageManager: ObservableObject {
     func noteFetchResult(statusCode: Int) {
         refreshPolicy.record(statusCode: statusCode)
         isRefreshSlowed = refreshPolicy.isSlowed
+        if (200..<300).contains(statusCode) { consecutiveAuthFailures = 0 }
+        else if statusCode == 401 || statusCode == 403 { consecutiveAuthFailures += 1; evaluateAlerts() }
     }
 
     /// Applique les limites lues dans le statusline de Claude Code. Retourne false si la source est absente.
@@ -764,6 +779,7 @@ class UsageManager: ObservableObject {
         }
         lastUpdated = usage.capturedAt
         usageSource = "statusline"
+        recordSample(at: usage.capturedAt)
         errorMessage = nil
         hasFetchedData = true
         updatePercentages()
@@ -1098,6 +1114,8 @@ class UsageManager: ObservableObject {
             usageSource = "claude.ai"
             errorMessage = nil
             hasFetchedData = true
+            recordSample()
+            evaluateAlerts()
 
             // Update percentage values for progress bars
             updatePercentages()

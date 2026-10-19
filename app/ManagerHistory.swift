@@ -1,0 +1,43 @@
+import Foundation
+
+/// Historique des relevés et grandeurs qui en découlent (rythme récent, consommation du jour).
+extension UsageManager {
+    /// Les lancements de vérification (aperçus, sondes) ne doivent jamais écrire dans l'historique réel.
+    var isProbeRun: Bool {
+        !Set(CommandLine.arguments).isDisjoint(with: ["--snapshot", "--demo", "--no-keychain", "--diagnose", "--probe-console"])
+    }
+
+    func loadHistory() {
+        guard !isProbeRun else { return }
+        history.prune()
+        historySamples = history.load(since: Date().addingTimeInterval(-24 * 3600))
+    }
+
+    /// Un relevé par minute au plus. `date` : instant de la donnée (celui du fichier pour le statusline).
+    func recordSample(at date: Date = Date()) {
+        guard !isProbeRun, hasFetchedData || sessionUsage + weeklyUsage > 0 else { return }
+        if let last = lastRecordedAt, date.timeIntervalSince(last) < 50 { return }
+        lastRecordedAt = date
+        let sample = UsageSample(time: date.timeIntervalSince1970,
+                                 session: sessionResetsAt == nil ? nil : Double(sessionUsage),
+                                 weekly: weeklyResetsAt == nil ? nil : Double(weeklyUsage))
+        history.append(sample)
+        historySamples.append(sample)
+        let cutoff = date.addingTimeInterval(-24 * 3600).timeIntervalSince1970
+        historySamples.removeAll { $0.time < cutoff }
+    }
+
+    var sessionRecentRate: Double? { UsageAnalytics.recentRate(historySamples, series: .session) }
+    var weeklyRecentRate: Double? { UsageAnalytics.recentRate(historySamples, series: .weekly, lookback: 3 * 3600) }
+    var weeklyUsedToday: Double? { UsageAnalytics.usedToday(historySamples, series: .weekly) }
+
+    var sessionRecentForecast: RecentForecast? {
+        guard let rate = sessionRecentRate, let resetsAt = sessionResetsAt else { return nil }
+        return RecentForecast.make(ratePerHour: rate, used: Double(sessionUsage), resetsAt: resetsAt)
+    }
+
+    var weeklyRecentForecast: RecentForecast? {
+        guard let rate = weeklyRecentRate, let resetsAt = weeklyResetsAt else { return nil }
+        return RecentForecast.make(ratePerHour: rate, used: Double(weeklyUsage), resetsAt: resetsAt)
+    }
+}

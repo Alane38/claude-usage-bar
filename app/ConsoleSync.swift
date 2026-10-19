@@ -81,6 +81,7 @@ extension UsageManager {
         consoleBalance = balance
         consoleUpdatedAt = Date()
         consoleStatus = ""
+        evaluateAlerts()
     }
 
     // MARK: - Import depuis le navigateur
