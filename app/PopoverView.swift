@@ -37,6 +37,8 @@ struct PopoverView: View {
                 case .gauges: GaugesLayout(usageManager: usageManager)
                 case .cards:  CardsLayout(usageManager: usageManager)
                 }
+                WeekPlanDisclosure(usageManager: usageManager)
+                HistoryDisclosure(usageManager: usageManager)
                 ModelDetails(usageManager: usageManager)
                 ExtraUsageRow(usageManager: usageManager)
                 LimitResetsLine(usageManager: usageManager)

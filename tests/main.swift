@@ -347,4 +347,28 @@ check(ledger.has("a"), "registre : clé marquée")
 ledger.mark("b", now: alertNow.addingTimeInterval(40 * 86400))
 check(!ledger.has("a") && ledger.has("b"), "registre : purge après 30 jours")
 
+// --- Lignes de rythme récent ---
+check(PaceText.recentLine(nil) == nil, "ligne récente : absente sans prévision")
+check(PaceText.recentLine(RecentForecast(ratePerHour: 0.4, projectedPercent: 10, exhaustsAt: nil)) == nil, "ligne récente : rythme négligeable -> rien")
+check(PaceText.recentLine(RecentForecast(ratePerHour: 12, projectedPercent: 50, exhaustsAt: nil)) == "Rythme récent : 12 %/h", "ligne récente : rythme seul")
+check(PaceText.recentLine(RecentForecast(ratePerHour: 4.5, projectedPercent: 50, exhaustsAt: nil)) == "Rythme récent : 4,5 %/h", "ligne récente : décimale française sous 10 %/h")
+check(PaceText.recentLine(RecentForecast(ratePerHour: 40, projectedPercent: 120, exhaustsAt: t0.addingTimeInterval(5400)))?.contains("100 % vers") == true, "ligne récente : avec l'heure d'atteinte")
+check(PaceText.todayLine(9.4) == "Aujourd'hui : +9 % de la semaine" && PaceText.todayLine(nil) == nil, "ligne du jour : consommation depuis minuit")
+
+// --- Planning de la semaine ---
+let planBase = utc.startOfDay(for: t0)
+let monday15 = planBase.addingTimeInterval(15 * 3600)
+let wednesday14 = planBase.addingTimeInterval((48 + 14) * 3600)
+let plan = WeekPlan.make(used: 37, now: monday15, resetsAt: wednesday14, calendar: utc)
+check(plan.count == 3 && plan[0].isToday && !plan[1].isToday, "planning : trois jours, le premier est aujourd'hui")
+check(Array(plan.map(\.label).prefix(2)) == ["auj.", "dem."] && plan[2].label.count == 3, "planning : libellés courts (auj., dem., puis le jour)")
+check(abs(plan.map(\.percent).reduce(0, +) - 63) < 0.0001, "planning : la somme des parts = ce qui reste (63 %)")
+check(abs(plan[0].percent - 63.0 * 9 / 47) < 0.0001 && abs(plan[1].percent - 63.0 * 24 / 47) < 0.0001, "planning : parts au prorata des heures")
+check(WeekPlan.make(used: 100, now: monday15, resetsAt: wednesday14, calendar: utc).isEmpty, "planning : limite atteinte -> rien")
+check(WeekPlan.make(used: 20, now: wednesday14, resetsAt: monday15, calendar: utc).isEmpty, "planning : reset passé -> rien")
+let sameDay = WeekPlan.make(used: 50, now: monday15, resetsAt: monday15.addingTimeInterval(5 * 3600), calendar: utc)
+check(sameDay.count == 1 && abs(sameDay[0].percent - 50) < 0.0001, "planning : reset le jour même = une seule part")
+let longPlan = WeekPlan.make(used: 0, now: planBase.addingTimeInterval(1 * 3600), resetsAt: planBase.addingTimeInterval((6 * 24 + 12) * 3600), calendar: utc)
+check(longPlan.count == 7 && longPlan[2].label.count == 3, "planning : sept jours, noms courts à partir du troisième")
+
 exit(failures == 0 ? 0 : 1)

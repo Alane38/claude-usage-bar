@@ -136,6 +136,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.weeklyResetsAt = Date().addingTimeInterval(2 * 86400 + 14 * 3600)
                     self.usageManager.lastUpdated = Date()
                     self.usageManager.hasFetchedData = true
+                    self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage))
                     self.usageManager.updatePercentages()
                     let deadline = Date().addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,

@@ -12,6 +12,7 @@ struct GaugeRow: View {
     let tone: UsageTone
     let resetsAt: Date?
     let showsDailyBudget: Bool
+    var recent: RecentForecast?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -33,6 +34,9 @@ struct GaugeRow: View {
             let summary = PaceText.summary(for: forecast, showsDailyBudget: showsDailyBudget)
             if !summary.isEmpty {
                 Text(summary).font(.caption).foregroundColor(Color.secondaryText)
+            }
+            if let line = PaceText.recentLine(recent) {
+                Text(line).font(.caption).foregroundColor(recent?.exhaustsAt == nil ? Color.secondaryText : UsageTone.warning.color)
             }
         }
     }
@@ -61,9 +65,11 @@ struct GaugesLayout: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             GaugeRow(title: "Session · 5 h", percent: usageManager.sessionUsage, forecast: usageManager.sessionForecast,
-                     tone: usageManager.sessionTone, resetsAt: usageManager.sessionResetsAt, showsDailyBudget: false)
+                     tone: usageManager.sessionTone, resetsAt: usageManager.sessionResetsAt, showsDailyBudget: false,
+                     recent: usageManager.sessionRecentForecast)
             GaugeRow(title: "Semaine · 7 j", percent: usageManager.weeklyUsage, forecast: usageManager.weeklyForecast,
-                     tone: usageManager.weeklyTone, resetsAt: usageManager.weeklyResetsAt, showsDailyBudget: true)
+                     tone: usageManager.weeklyTone, resetsAt: usageManager.weeklyResetsAt, showsDailyBudget: true,
+                     recent: usageManager.weeklyRecentForecast)
             if let credits = usageManager.creditsSummary {
                 Divider()
                 CreditsGaugeRow(summary: credits)

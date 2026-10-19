@@ -17,6 +17,17 @@ enum Snapshot {
         return args[flag + 1]
     }
 
+    /// Historique fictif des dernières 24 h (dents de scie de sessions de 5 h) pour les aperçus.
+    static func demoHistory(session current: Double, now: Date = Date()) -> [UsageSample] {
+        (0...288).map { index in
+            let minutesAgo = Double(288 - index) * 5
+            let phase = (minutesAgo.truncatingRemainder(dividingBy: 300)) / 300
+            let level = max(0, min(100, (1 - phase) * 62 + (index % 7 == 0 ? 3 : 0)))
+            let value = index == 288 ? current : level
+            return UsageSample(time: now.addingTimeInterval(-minutesAgo * 60).timeIntervalSince1970, session: value, weekly: min(100, 20 + Double(index) / 288 * 17))
+        }
+    }
+
     static func write(view: some View, to path: String, size: NSSize) {
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height).background(Color(white: 0.11)))
         hosting.frame = NSRect(origin: .zero, size: size)
