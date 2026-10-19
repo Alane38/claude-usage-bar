@@ -2,6 +2,16 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.8.0 : 19 octobre 2026
+
+### Modifié
+- **Première version de déploiement : secrets dans le trousseau macOS.** Les deux cookies (claude.ai et Console) quittent le fichier de développement au premier lancement, puis le fichier est supprimé. macOS peut demander une fois l'autorisation du trousseau à chaque nouvelle version ; c'est le prix de la protection.
+- **`ClaudeUsageBar.swift` (1 560 lignes) découpé en 13 fichiers de moins de 200 lignes** : `AppDelegate` (+ Shortcuts, Popover), `UsageManager` (+ Settings, Fetch, Credits, Parsing), `StatusManager`, `StatusModels`, `PasteableText`, `AppEntry`, `AppExtensions`. Aucun changement de comportement : mêmes fonctions, mêmes propriétés publiées, mêmes journaux.
+- `app/build.sh` (héritage amont) et README alignés sur la nouvelle structure.
+
+### Ajouté
+- Options de développement `--import-browser` (import Zen/Firefox en ligne de commande, statuts seulement) et `--wait` (délai des captures).
+
 ## 1.7.0 : 19 octobre 2026
 
 ### Modifié

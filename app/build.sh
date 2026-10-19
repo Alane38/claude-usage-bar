@@ -35,7 +35,7 @@ fi
 
 # Compile the Swift app for arm64
 swiftc -parse-as-library -o "$APP_PATH/Contents/MacOS/ClaudeUsageBar_arm64" \
-    ClaudeUsageBar.swift \
+    *.swift \
     -framework SwiftUI \
     -framework AppKit \
     -framework WebKit \
@@ -43,7 +43,7 @@ swiftc -parse-as-library -o "$APP_PATH/Contents/MacOS/ClaudeUsageBar_arm64" \
 
 # Compile for x86_64 (Intel)
 swiftc -parse-as-library -o "$APP_PATH/Contents/MacOS/ClaudeUsageBar_x86_64" \
-    ClaudeUsageBar.swift \
+    *.swift \
     -framework SwiftUI \
     -framework AppKit \
     -framework WebKit \
