@@ -4,7 +4,7 @@
 #         scripts/visual-check.sh --update   remplace les références par le rendu actuel (après un changement voulu)
 # Local seulement : le rendu dépend des polices et de la version de macOS, donc pas dans la CI.
 # Les captures de démonstration sont ancrées sur minuit : seuls le nom du dernier jour du planning et le décompte « reset dans »
-# varient avec le jour et l'heure, d'où la tolérance de 0,4 % de pixels.
+# varient avec le jour et l'heure, d'où la tolérance de 0,1 % de pixels.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -32,6 +32,7 @@ SCENES=(
   "planning-depasse:--layout gauges --used-today 40 --open-plan"
   "planning-clair:--layout gauges --used-today 21 --open-plan --light"
   "mise-a-jour:--layout cards --demo-update"
+  "mise-a-jour-echec:--layout cards --demo-update failed"
   "barre-de-menu:--menubar-styles"
   "reglages-affichage:--settings --tab display"
 )

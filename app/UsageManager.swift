@@ -77,6 +77,7 @@ class UsageManager: ObservableObject {
     @Published var keychainIssue: String = ""
     @Published var availableUpdate: ReleaseInfo?
     @Published var updateCheckReport = ""
+    @Published var updateInstallState: UpdateInstallState = .idle
     @Published var organizations: [Organization] = []
     @Published var selectedOrganizationId: String?
     var checksForUpdates = true

@@ -2,6 +2,18 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.10.0 : 19 octobre 2026
+
+### Ajouté
+- **Mise à jour en un clic** : le bandeau « Version X disponible » propose « Installer » (et « Notes »). L'app télécharge le zip de la release GitHub, **vérifie la somme SHA-256, l'identifiant, la version et la signature**, puis un script attend sa fermeture, **met l'ancienne application à la Corbeille** (jamais supprimée), installe la nouvelle et la relance. Au moindre doute, rien n'est touché et le bandeau explique pourquoi (« somme SHA-256 ne correspond pas… »). Seuls les téléchargements HTTPS depuis les releases de ce dépôt sont acceptés ; une release sans somme SHA-256 n'est pas installable en un clic.
+- Options de développement `--test-install` (même chemin sur des fichiers locaux, sans quitter) et `--demo-update working|failed`. Fichier `AppDelegate+CommandLine.swift` pour les outils en ligne de commande.
+
+### Modifié
+- Tolérance de la comparaison visuelle resserrée à 0,1 % de pixels (à 0,4 %, le changement d'un bouton passait inaperçu) ; les captures de démonstration ne lisent plus les vrais jours exceptionnels.
+
+### À savoir
+- Les releases de la CI sont signées « ad hoc » (pas avec ton certificat local) : après une mise à jour en un clic, macOS peut redemander l'Accès complet au disque et le trousseau. Pour toi, `scripts/release.sh` garde l'identité stable.
+
 ## 1.9.1 : 19 octobre 2026
 
 ### Ajouté

@@ -16,6 +16,6 @@ swiftc -sdk "$SDK" -o build/tests.new \
     app/MenuBarDisplay.swift app/ApiCredits.swift app/ConsoleBalance.swift app/SyncHelpers.swift app/RefreshPolicy.swift \
     app/DesignModels.swift app/PaceText.swift app/UsageAnalytics.swift app/AlertRules.swift app/WeekPlan.swift \
     app/ForecastExport.swift app/SystemSettings.swift app/UsageHistory.swift app/CreditsSummary.swift \
-    app/UpdateChecker.swift app/DayBudget.swift app/Organizations.swift app/FirefoxCookies.swift tests/main.swift
+    app/UpdateChecker.swift app/UpdateInstaller.swift app/DayBudget.swift app/Organizations.swift app/FirefoxCookies.swift tests/main.swift
 mv build/tests.new build/tests
 build/tests

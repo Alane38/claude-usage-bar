@@ -4,6 +4,9 @@ import Foundation
 struct ReleaseInfo: Equatable {
     let version: String
     let pageURL: URL
+    /// Application zippée et sa somme SHA-256, publiées par la release ; nil si la release n'en a pas (installation manuelle).
+    var zipURL: URL? = nil
+    var checksumURL: URL? = nil
 }
 
 enum UpdateChecker {
@@ -19,7 +22,20 @@ enum UpdateChecker {
               url.scheme == "https", url.host == "github.com",
               json["draft"] as? Bool != true, json["prerelease"] as? Bool != true,
               components(tag) != nil else { return nil }
-        return ReleaseInfo(version: tag.hasPrefix("v") ? String(tag.dropFirst()) : tag, pageURL: url)
+        let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+        let assets = (json["assets"] as? [[String: Any]] ?? []).compactMap { asset -> (name: String, url: URL)? in
+            guard let name = asset["name"] as? String, let link = asset["browser_download_url"] as? String,
+                  let url = URL(string: link), isTrustedDownload(url) else { return nil }
+            return (name, url)
+        }
+        let zip = assets.first { $0.name == "ClaudeUsageBar-\(version)-arm64.zip" }?.url
+        let checksum = assets.first { $0.name == "ClaudeUsageBar-\(version)-arm64.zip.sha256" }?.url
+        return ReleaseInfo(version: version, pageURL: url, zipURL: zip, checksumURL: zip == nil ? nil : checksum)
+    }
+
+    /// Un téléchargement n'est accepté que depuis les releases de ce dépôt, en HTTPS.
+    static func isTrustedDownload(_ url: URL) -> Bool {
+        url.scheme == "https" && url.host == "github.com" && url.path.hasPrefix("/Alane38/claude-usage-bar/releases/download/")
     }
 
     /// « 1.8.1 » > « 1.8.0 », comparaison numérique composante par composante (1.10.0 > 1.9.0).

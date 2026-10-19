@@ -87,15 +87,35 @@ struct PopoverView: View {
     }
 
     private func updateBanner(_ update: ReleaseInfo) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Version \(update.version) disponible").font(.system(size: 13, weight: .medium))
-                Text("Tu as la \(usageManager.currentVersion).").font(.caption).foregroundColor(Color.secondaryText)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Version \(update.version) disponible").font(.system(size: 13, weight: .medium))
+                    Text("Tu as la \(usageManager.currentVersion).").font(.caption).foregroundColor(Color.secondaryText)
+                }
+                Spacer()
+                updateButtons(update)
             }
-            Spacer()
-            Button("Voir") { NSWorkspace.shared.open(update.pageURL) }.controlSize(.small)
+            switch usageManager.updateInstallState {
+            case .idle: EmptyView()
+            case .working(let step):
+                HStack(spacing: 6) { ProgressView().controlSize(.small); Text(step).font(.caption).foregroundColor(Color.secondaryText) }
+            case .failed(let message):
+                Text(message).font(.caption).foregroundColor(UsageTone.danger.color)
+            }
         }
         .popoverCard()
+    }
+
+    @ViewBuilder
+    private func updateButtons(_ update: ReleaseInfo) -> some View {
+        let isWorking: Bool = { if case .working = usageManager.updateInstallState { return true } else { return false } }()
+        HStack(spacing: 6) {
+            Button("Notes") { NSWorkspace.shared.open(update.pageURL) }.controlSize(.small)
+            if update.zipURL != nil {
+                Button("Installer") { usageManager.installUpdate() }.controlSize(.small).disabled(isWorking)
+            }
+        }
     }
 
     private var footer: some View {

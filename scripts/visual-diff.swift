@@ -32,7 +32,7 @@ guard args.count >= 4, let reference = Pixels(path: args[1]), let actual = Pixel
     print("illisible")
     exit(2)
 }
-let threshold = args.count > 4 ? (Double(args[4]) ?? 0.4) : 0.4
+let threshold = args.count > 4 ? (Double(args[4]) ?? 0.1) : 0.1
 guard reference.width == actual.width, reference.height == actual.height else {
     print("tailles différentes : \(reference.width)x\(reference.height) contre \(actual.width)x\(actual.height)")
     exit(2)

@@ -86,32 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.usageManager.sendTestNotification() }
         }
 
-        if CommandLine.arguments.contains("--diagnose") {
-            print("diagnostic : cookie claude.ai en mémoire =", !usageManager.sessionCookie.isEmpty,
-                  "| cookie Console =", !usageManager.consoleCookie.isEmpty,
-                  "| problème trousseau =", usageManager.keychainIssue.isEmpty ? "aucun" : usageManager.keychainIssue)
-            exit(0)
-        }
-
-        if CommandLine.arguments.contains("--import-browser") {
-            // Même chemin que le bouton des Réglages : importe Zen/Firefox, interroge la Console, n'imprime que des statuts.
-            let imported = usageManager.importBrowserCookies()
-            print("import :", usageManager.browserImportReport)
-            guard imported else { exit(1) }
-            usageManager.fetchConsoleBalance()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-                print("console :", self.usageManager.consoleStatus,
-                      "| solde lu =", self.usageManager.consoleBalance != nil)
-                exit(0)
-            }
-        }
-
-        if CommandLine.arguments.contains("--probe-console") {
-            DispatchQueue.global().async {
-                self.usageManager.probeConsole()
-                exit(0)
-            }
-        }
+        runCommandLineTools()
 
         // Options de vérification visuelle : appliquées au lancement, jamais enregistrées dans les réglages.
         if let layout = Snapshot.option("--layout").flatMap(PopoverLayout.init(rawValue:)) { usageManager.popoverLayout = layout }
@@ -152,7 +127,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage),
                                                                           hours: Snapshot.option("--history-hours").flatMap(Double.init) ?? 24)
                     self.usageManager.usedTodayOverride = Snapshot.option("--used-today").flatMap(Double.init)
-                    if CommandLine.arguments.contains("--exceptional") { self.usageManager.exceptionOverride = true }
+                    // La démo ne lit jamais les vrais jours exceptionnels de l'utilisateur : rendu identique tous les jours.
+                    self.usageManager.exceptionOverride = CommandLine.arguments.contains("--exceptional")
                     self.usageManager.updatePercentages()
                     let deadline = Date().addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,
@@ -161,7 +137,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.consoleUpdatedAt = Date().addingTimeInterval(-120)
                 }
                 if CommandLine.arguments.contains("--demo-update") {
-                    self.usageManager.availableUpdate = ReleaseInfo(version: "9.9.9", pageURL: URL(string: "https://github.com/Alane38/claude-usage-bar/releases")!)
+                    let base = "https://github.com/Alane38/claude-usage-bar/releases/download/v9.9.9/ClaudeUsageBar-9.9.9-arm64.zip"
+                    self.usageManager.availableUpdate = ReleaseInfo(version: "9.9.9", pageURL: URL(string: "https://github.com/Alane38/claude-usage-bar/releases")!,
+                                                                    zipURL: URL(string: base), checksumURL: URL(string: base + ".sha256"))
+                    switch Snapshot.option("--demo-update") {
+                    case "working": self.usageManager.updateInstallState = .working("Téléchargement…")
+                    case "failed": self.usageManager.updateInstallState = .failed("La somme SHA-256 ne correspond pas : archive corrompue ou modifiée, mise à jour refusée.")
+                    default: break
+                    }
                 }
                 if CommandLine.arguments.contains("--menubar-styles") {
                     Snapshot.write(view: VStack(alignment: .leading, spacing: 10) {

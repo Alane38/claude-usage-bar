@@ -505,4 +505,30 @@ check(DayBudgetText.line(exceptional).hasSuffix("jour exceptionnel") && !DayBudg
 check(DayBudget.make(weeklyUsed: 40, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris, isException: true)?.level == .exception, "jour exceptionnel : transmis par make")
 check(ExceptionalDays.stamp(for: noon, calendar: paris) == "2026-10-19" && ExceptionalDays.contains(["2026-10-18", "2026-10-19"], date: noon, calendar: paris) && !ExceptionalDays.contains(["2026-10-18"], date: noon, calendar: paris), "jour exceptionnel : format AAAA-MM-JJ")
 
+// MARK: - Installation d'une mise à jour
+let goodSum = String(repeating: "ab", count: 32)
+check(UpdateInstaller.parseChecksum("\(goodSum)  ClaudeUsageBar-1.9.2-arm64.zip\n") == goodSum && UpdateInstaller.parseChecksum(goodSum.uppercased()) == goodSum, "somme : format shasum, majuscules acceptées")
+check(UpdateInstaller.parseChecksum("") == nil && UpdateInstaller.parseChecksum("xyz") == nil && UpdateInstaller.parseChecksum(String(goodSum.dropLast())) == nil && UpdateInstaller.parseChecksum(String(repeating: "g", count: 64)) == nil, "somme : vide, courte ou non hexadécimale -> nil")
+let info: [String: Any] = ["CFBundleIdentifier": "com.alane.usagebar", "CFBundleShortVersionString": "1.9.2"]
+check(UpdateInstaller.problem(inInfo: info, bundleID: "com.alane.usagebar", version: "1.9.2") == nil, "archive : identifiant et version conformes")
+check(UpdateInstaller.problem(inInfo: info, bundleID: "com.autre.app", version: "1.9.2") != nil && UpdateInstaller.problem(inInfo: info, bundleID: "com.alane.usagebar", version: "1.9.3") != nil && UpdateInstaller.problem(inInfo: nil, bundleID: "x", version: "1") != nil, "archive : mauvais identifiant, mauvaise version ou sans plist -> refus")
+let replacement = UpdateInstaller.script(pid: 4242, newApp: URL(fileURLWithPath: "/tmp/it's/new.app"), target: URL(fileURLWithPath: "/Applications/ClaudeUsageBar.app"), trash: URL(fileURLWithPath: "/Users/x/.Trash"), relaunch: true)
+check(replacement.contains("kill -0 4242") && replacement.contains("'/tmp/it'\\''s/new.app'") && replacement.contains("ClaudeUsageBar.app.update"), "script : attend le pid, protège les apostrophes, prépare une copie voisine")
+check(replacement.contains(".Trash/ClaudeUsageBar-avant-mise-a-jour-") && replacement.components(separatedBy: "\n").allSatisfy { !$0.hasPrefix("r" + "m ") }, "script : l'ancienne app va à la Corbeille, jamais supprimée")
+check(replacement.contains("/usr/bin/open '/Applications/ClaudeUsageBar.app'") && !UpdateInstaller.script(pid: 1, newApp: URL(fileURLWithPath: "/a"), target: URL(fileURLWithPath: "/b.app"), trash: URL(fileURLWithPath: "/t"), relaunch: false).contains("/usr/bin/open"), "script : relance seulement si demandé")
+let assetBase = "https://github.com/Alane38/claude-usage-bar/releases/download/v1.9.2/"
+let pageLink = "https://github.com/Alane38/claude-usage-bar/releases/tag/v1.9.2"
+func releaseWithAssets(zip: String?, sum: String?) -> Data {
+    var assets: [String] = []
+    if let zip { assets.append("{\"name\":\"ClaudeUsageBar-1.9.2-arm64.zip\",\"browser_download_url\":\"\(zip)\"}") }
+    if let sum { assets.append("{\"name\":\"ClaudeUsageBar-1.9.2-arm64.zip.sha256\",\"browser_download_url\":\"\(sum)\"}") }
+    return Data("{\"tag_name\":\"v1.9.2\",\"html_url\":\"\(pageLink)\",\"assets\":[\(assets.joined(separator: ","))]}".utf8)
+}
+let withAssets = UpdateChecker.parse(releaseWithAssets(zip: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip", sum: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip.sha256"))
+check(withAssets?.zipURL != nil && withAssets?.checksumURL != nil, "release : zip et somme trouvés")
+let evil = UpdateChecker.parse(releaseWithAssets(zip: "https://evil.example/ClaudeUsageBar-1.9.2-arm64.zip", sum: "http://github.com/Alane38/claude-usage-bar/releases/download/v1.9.2/x.sha256"))
+check(evil != nil && evil?.zipURL == nil && evil?.checksumURL == nil, "release : téléchargement hors du dépôt ou en HTTP refusé")
+check(UpdateChecker.parse(releaseWithAssets(zip: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip", sum: nil))?.checksumURL == nil, "release : sans somme SHA-256, pas d'installation")
+check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1"))?.zipURL == nil, "release : sans ressources -> installation manuelle")
+
 exit(failures == 0 ? 0 : 1)
