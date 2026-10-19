@@ -4,6 +4,15 @@
 # qui n'est livrée qu'avec Xcode.app.
 set -euo pipefail
 
+# Développement (défaut) : cookies dans un fichier protégé, aucune fenêtre du trousseau.
+# `--release` : cookies dans le trousseau macOS (chiffré). Voir docs/adr/001-stockage-des-secrets.md.
+MODE_FLAGS=()
+MODE_LABEL="développement (secrets dans un fichier)"
+if [ "${1:-}" = "--release" ]; then
+    MODE_FLAGS=(-D RELEASE)
+    MODE_LABEL="release (secrets dans le trousseau)"
+fi
+
 cd "$(dirname "$0")/.."
 SDK_ROOT=/Library/Developer/CommandLineTools/SDKs
 SDK="${CUB_SDK:-$SDK_ROOT/MacOSX26.5.sdk}"
@@ -17,7 +26,7 @@ cp app/Info.plist "$APP/Contents/"
 cp app/ClaudeUsageBar.icns "$APP/Contents/Resources/"
 echo -n "APPL????" > "$APP/Contents/PkgInfo"
 
-swiftc -parse-as-library -sdk "$SDK" -target arm64-apple-macos13.0 \
+swiftc -parse-as-library ${MODE_FLAGS[@]+"${MODE_FLAGS[@]}"} -sdk "$SDK" -target arm64-apple-macos13.0 \
     -o "$APP/Contents/MacOS/ClaudeUsageBar" app/*.swift \
     -framework SwiftUI -framework AppKit -framework WebKit
 
@@ -32,4 +41,4 @@ else
     codesign --force --deep --sign - "$APP"
 fi
 codesign --verify --verbose=2 "$APP"
-echo "OK : $APP"
+echo "OK : $APP — mode $MODE_LABEL"

@@ -1,0 +1,21 @@
+# 001 : stockage des secrets, développement et release
+
+## Contexte
+L'app garde deux cookies de session (claude.ai et Console). Le trousseau macOS est le bon endroit, mais il lie
+l'autorisation d'accès à l'empreinte exacte du binaire quand la signature n'a pas d'identifiant d'équipe Apple
+(certificat auto-signé local). Chaque recompilation redemande donc le mot de passe, ce qui rend le développement pénible.
+
+## Décision
+Le stockage dépend de la compilation :
+- **développement** (`scripts/build.sh`, défaut) : un fichier par secret dans
+  `~/Library/Application Support/ClaudeUsageBar/secrets` (droits 0600, dossier 0700). Aucune fenêtre du trousseau.
+- **release** (`scripts/build.sh --release` ou `scripts/release.sh`) : trousseau macOS, chiffré et réservé à l'app.
+  Au premier lancement, les secrets saisis en développement passent dans le trousseau puis le fichier est supprimé.
+
+Le mode actif est affiché dans Réglages > Connexions.
+
+## Conséquences
+- En développement, les cookies sont lisibles par tout programme lancé sous ce compte (même niveau que l'app d'origine).
+  À ne pas utiliser comme version « de tous les jours » partagée : on déploie en release.
+- Une release redemande l'autorisation du trousseau une fois par nouvelle version (empreinte différente).
+- L'ancien trousseau peut être repris en développement avec un bouton explicite (une demande de mot de passe).

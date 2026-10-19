@@ -2,19 +2,18 @@ import Foundation
 
 /// Synchronisation des crédits API de la Console (`platform.claude.com`) et import des sessions du navigateur.
 extension UsageManager {
-    private static let sessionKeychain = KeychainStore(service: "com.alane.usagebar")
-    private static let consoleAccount = "console_session_cookie"
-    private static let claudeAccount = "claude_session_cookie"
+    private static let secrets = AppSecrets.store
+    private static let consoleAccount = AppSecrets.consoleAccount
 
     func loadConsoleCookie() {
         guard !CommandLine.arguments.contains("--no-keychain") else { return }
-        consoleCookie = Self.sessionKeychain.read(account: Self.consoleAccount) ?? ""
+        consoleCookie = Self.secrets.read(account: Self.consoleAccount) ?? ""
     }
 
     func saveConsoleCookie(_ cookie: String) {
         consoleCookie = cookie
-        if !Self.sessionKeychain.write(cookie, account: Self.consoleAccount) {
-            NSLog("ClaudeUsage: Keychain write failed for the Console session")
+        if !Self.secrets.write(cookie, account: Self.consoleAccount) {
+            NSLog("ClaudeUsage: secret storage write failed for the Console session")
         }
     }
 
@@ -23,7 +22,7 @@ extension UsageManager {
         consoleBalance = nil
         consoleUpdatedAt = nil
         consoleStatus = "Console non connectée"
-        Self.sessionKeychain.delete(account: Self.consoleAccount)
+        Self.secrets.delete(account: Self.consoleAccount)
     }
 
     func fetchConsoleBalance() {
@@ -156,4 +155,17 @@ extension UsageManager {
             print("sonde : \(path) -> HTTP \(code)", body.map { masked($0) } ?? "(vide)")
         }
     }
+
+    #if !RELEASE
+    /// Reprend les cookies de l'ancien stockage (trousseau). macOS demande le mot de passe une fois, à l'initiative de l'utilisateur.
+    func importLegacyKeychain() {
+        let legacy = KeychainStore(service: AppSecrets.keychainService)
+        var imported: [String] = []
+        if let value = legacy.read(account: AppSecrets.claudeAccount) { saveSessionCookie(value); imported.append("claude.ai") }
+        if let value = legacy.read(account: AppSecrets.consoleAccount) { saveConsoleCookie(value); imported.append("Console") }
+        browserImportReport = imported.isEmpty ? "Rien trouvé dans l'ancien trousseau." : "Importé depuis le trousseau : " + imported.joined(separator: ", ")
+        if !imported.isEmpty { fetchUsage() }
+    }
+    #endif
 }
+

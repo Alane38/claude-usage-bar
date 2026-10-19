@@ -12,6 +12,7 @@ struct ClaudeSessionSection: View {
     }
 
     var body: some View {
+        LabeledContent("Stockage des secrets", value: AppSecrets.storageLabel)
         LabeledContent("Session claude.ai", value: state)
         Text("claude.ai > Réglages > Usage, puis F12 > Réseau > requête « usage » > En-têtes de requête > Cookie. Colle l'en-tête complet.")
             .font(.caption)
@@ -19,6 +20,12 @@ struct ClaudeSessionSection: View {
         PasteableTextField(text: $cookieInput, placeholder: "Cookie de claude.ai…")
             .frame(height: 60)
             .cornerRadius(4)
+        #if !RELEASE
+        Button("Importer l'ancien trousseau (macOS demandera ton mot de passe une fois)") { usageManager.importLegacyKeychain() }
+        if !usageManager.browserImportReport.isEmpty {
+            Text(usageManager.browserImportReport).font(.caption).foregroundColor(.secondary)
+        }
+        #endif
         HStack {
             Button("Enregistrer") {
                 guard !cookieInput.isEmpty else { return }

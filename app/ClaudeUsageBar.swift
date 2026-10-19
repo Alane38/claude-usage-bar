@@ -499,6 +499,7 @@ class UsageManager: ObservableObject {
     init(statusItem: NSStatusItem?, delegate: AppDelegate? = nil) {
         self.statusItem = statusItem
         self.delegate = delegate
+        AppSecrets.migrateDevFilesToKeychain()
         loadSessionCookie()
         loadConsoleCookie()
         loadSettings()
@@ -509,26 +510,25 @@ class UsageManager: ObservableObject {
         isAccessibilityEnabled = AXIsProcessTrusted()
     }
 
-    private static let cookieKeychain = KeychainStore(service: "com.alane.usagebar")
-    private static let cookieAccount = "claude_session_cookie"
+    private static let cookieStore = AppSecrets.store
+    private static let cookieAccount = AppSecrets.claudeAccount
 
     /// Lit le cookie dans le Keychain. Un cookie resté en clair dans UserDefaults (anciennes versions)
     /// est migré une fois, puis effacé du .plist.
     func loadSessionCookie() {
-        // Les builds de développement n'ont pas l'autorisation du trousseau : `--no-keychain` évite la fenêtre de mot de passe.
         guard !CommandLine.arguments.contains("--no-keychain") else { return }
-        let stored = Self.cookieKeychain.readResult(account: Self.cookieAccount)
+        let stored = Self.cookieStore.readResult(account: Self.cookieAccount)
         if let value = stored.value {
             sessionCookie = value
             return
         }
         if stored.status != errSecItemNotFound {
-            // L'élément existe mais macOS refuse la lecture (autorisation du trousseau non accordée).
-            keychainIssue = "Trousseau : accès refusé (code \(stored.status))"
+            // L'élément existe mais la lecture est refusée (autorisation du trousseau non accordée).
+            keychainIssue = "Stockage des secrets : accès refusé (code \(stored.status))"
         }
         guard let legacy = UserDefaults.standard.string(forKey: "claude_session_cookie") else { return }
         sessionCookie = legacy
-        if Self.cookieKeychain.write(legacy, account: Self.cookieAccount) {
+        if Self.cookieStore.write(legacy, account: Self.cookieAccount) {
             UserDefaults.standard.removeObject(forKey: "claude_session_cookie")
         }
     }
@@ -648,15 +648,15 @@ class UsageManager: ObservableObject {
     func saveSessionCookie(_ cookie: String) {
         NSLog("ClaudeUsage: Saving cookie, length: \(cookie.count)")
         sessionCookie = cookie
-        if !Self.cookieKeychain.write(cookie, account: Self.cookieAccount) {
-            NSLog("ClaudeUsage: Keychain write failed, cookie kept in memory only")
+        if !Self.cookieStore.write(cookie, account: Self.cookieAccount) {
+            NSLog("ClaudeUsage: secret storage write failed, cookie kept in memory only")
         }
     }
 
     func clearSessionCookie() {
         NSLog("ClaudeUsage: Clearing cookie")
         sessionCookie = ""
-        Self.cookieKeychain.delete(account: Self.cookieAccount)
+        Self.cookieStore.delete(account: Self.cookieAccount)
         UserDefaults.standard.removeObject(forKey: "claude_session_cookie")
 
         // Reset all data

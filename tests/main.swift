@@ -225,4 +225,19 @@ check(textless.title.isEmpty && textless.percent == 8, "barre : icône seule, au
 let withText = MenuBarDisplay.state(style: .dualRing, mode: .session, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, showText: true, now: now)
 check(withText.title == " 8%", "barre : texte par défaut inchangé")
 
+// --- Stockage des secrets par fichier (mode développement) ---
+let secretsDir = FileManager.default.temporaryDirectory.appendingPathComponent("cub-secrets-\(UUID().uuidString)")
+let fileStore = FileSecretStore(directory: secretsDir)
+check(fileStore.readResult(account: "a").value == nil && fileStore.readResult(account: "a").status == errSecItemNotFound, "fichier : absent -> introuvable")
+check(fileStore.write("valeur-1", account: "a") && fileStore.read(account: "a") == "valeur-1", "fichier : écriture puis lecture")
+check(fileStore.write("valeur-2", account: "a") && fileStore.read(account: "a") == "valeur-2", "fichier : écriture idempotente (remplace)")
+func permissions(_ url: URL) -> Int { ((try? FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions]) as? Int) ?? -1 }
+check(permissions(secretsDir.appendingPathComponent("a")) == 0o600, "fichier : droits 0600")
+check(permissions(secretsDir) == 0o700, "fichier : dossier 0700")
+check(fileStore.readResult(account: "a").status == errSecSuccess, "fichier : statut succès")
+check(fileStore.delete(account: "a") && fileStore.read(account: "a") == nil, "fichier : suppression")
+check(fileStore.delete(account: "jamais-existé"), "fichier : supprimer l'absent réussit")
+try? FileManager.default.removeItem(at: secretsDir)
+check(!AppSecrets.isRelease && AppSecrets.storageLabel.contains("développement"), "mode : la compilation de test est en développement")
+
 exit(failures == 0 ? 0 : 1)

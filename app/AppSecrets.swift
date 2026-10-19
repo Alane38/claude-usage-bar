@@ -1,0 +1,37 @@
+import Foundation
+
+/// Où vivent les cookies de session, selon la compilation :
+/// - développement (`scripts/build.sh`) : fichier réservé à l'utilisateur, aucune fenêtre du trousseau ;
+/// - release (`scripts/build.sh --release`) : trousseau, chiffré et réservé à l'app.
+/// Voir docs/adr/001-stockage-des-secrets.md.
+enum AppSecrets {
+    static let keychainService = "com.alane.usagebar"
+    static let claudeAccount = "claude_session_cookie"
+    static let consoleAccount = "console_session_cookie"
+
+    #if RELEASE
+    static let isRelease = true
+    static let storageLabel = "trousseau macOS (release)"
+    static let store: SecretStoring = KeychainStore(service: keychainService)
+    #else
+    static let isRelease = false
+    static let storageLabel = "fichier protégé (développement)"
+    static let store: SecretStoring = FileSecretStore(directory: secretsDirectory)
+    #endif
+
+    static var secretsDirectory: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/ClaudeUsageBar/secrets")
+    }
+
+    /// À la première release, les secrets saisis en développement passent dans le trousseau puis le fichier est supprimé.
+    static func migrateDevFilesToKeychain() {
+        #if RELEASE
+        let files = FileSecretStore(directory: secretsDirectory)
+        for account in [claudeAccount, consoleAccount] {
+            guard let value = files.read(account: account) else { continue }
+            if store.write(value, account: account) { files.delete(account: account) }
+        }
+        #endif
+    }
+}
