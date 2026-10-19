@@ -103,6 +103,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             exit(0)
         }
 
+        if CommandLine.arguments.contains("--import-browser") {
+            // Même chemin que le bouton des Réglages : importe Zen/Firefox, interroge la Console, n'imprime que des statuts.
+            let imported = usageManager.importBrowserCookies()
+            print("import :", usageManager.browserImportReport)
+            guard imported else { exit(1) }
+            usageManager.fetchConsoleBalance()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                print("console :", self.usageManager.consoleStatus,
+                      "| solde lu =", self.usageManager.consoleBalance != nil)
+                exit(0)
+            }
+        }
+
         if CommandLine.arguments.contains("--probe-console") {
             DispatchQueue.global().async {
                 self.usageManager.probeConsole()
@@ -115,17 +128,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if let style = Snapshot.option("--menubar").flatMap(MenuBarStyle.init(rawValue:)) { usageManager.menuBarStyle = style }
         if CommandLine.arguments.contains("--reset-in-menubar") { usageManager.menuBarShowReset = true }
         if CommandLine.arguments.contains("--settings-window") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.openSettings() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Snapshot.option("--wait").flatMap(Double.init) ?? 2)) { self.openSettings() }
         }
 
         if CommandLine.arguments.contains("--show") {
             // Mode développement : ouvre le popover au lancement, pour le vérifier sans cliquer.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.openPopover() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Snapshot.option("--wait").flatMap(Double.init) ?? 2)) { self.openPopover() }
         }
 
         if let snapshotPath = Snapshot.outputPath {
             // Laisse le temps au statusline/réseau de remplir les données, puis rend le popover et quitte.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Snapshot.option("--wait").flatMap(Double.init) ?? 2)) {
                 if let layout = Snapshot.option("--layout").flatMap(PopoverLayout.init(rawValue:)) { self.usageManager.popoverLayout = layout }
                 if let style = Snapshot.option("--menubar").flatMap(MenuBarStyle.init(rawValue:)) { self.usageManager.menuBarStyle = style }
                 if CommandLine.arguments.contains("--denied") {
