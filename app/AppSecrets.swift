@@ -2,7 +2,7 @@ import Foundation
 
 /// Où vivent les cookies de session, selon la compilation :
 /// - développement (`scripts/build.sh`) : fichier réservé à l'utilisateur, aucune fenêtre du trousseau ;
-/// - release (`scripts/build.sh --release`) : trousseau, chiffré et réservé à l'app.
+/// - release (`scripts/build.sh --release`) : trousseau (un seul élément pour tous les secrets), chiffré et réservé à l'app.
 /// Voir docs/adr/001-stockage-des-secrets.md.
 enum AppSecrets {
     static let keychainService = "com.alane.usagebar"
@@ -12,7 +12,11 @@ enum AppSecrets {
     #if RELEASE
     static let isRelease = true
     static let storageLabel = "trousseau macOS (release)"
-    static let store: SecretStoring = KeychainStore(service: keychainService)
+    /// Un seul élément du trousseau pour les deux cookies : une seule demande de mot de passe par mise à jour.
+    static let store: SecretStoring = BundledSecretStore(
+        backend: KeychainStore(service: keychainService),
+        legacy: KeychainStore(service: keychainService),
+        legacyAccounts: [claudeAccount, consoleAccount])
     #else
     static let isRelease = false
     static let storageLabel = "fichier protégé (développement)"

@@ -525,4 +525,61 @@ check(evil != nil && evil?.zipURL == nil && evil?.checksumURL == nil, "release :
 check(UpdateChecker.parse(releaseWithAssets(zip: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip", sum: nil))?.checksumURL == nil, "release : sans somme SHA-256, pas d'installation")
 check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1"))?.zipURL == nil, "release : sans ressources -> installation manuelle")
 
+// MARK: - Magasin de secrets unique
+/// Magasin en mémoire qui compte ses lectures et peut simuler un trousseau verrouillé.
+final class FakeSecretStore: SecretStoring {
+    var items: [String: String] = [:]
+    var reads = 0
+    var forcedStatus: OSStatus?
+    func readResult(account: String) -> (value: String?, status: OSStatus) {
+        reads += 1
+        if let forcedStatus { return (nil, forcedStatus) }
+        if let value = items[account] { return (value, errSecSuccess) }
+        return (nil, errSecItemNotFound)
+    }
+    func write(_ value: String, account: String) -> Bool { items[account] = value; return true }
+    func delete(account: String) -> Bool { items[account] = nil; return true }
+}
+let bundleAccounts = ["claude_session_cookie", "console_session_cookie"]
+
+check(SecretBundle.decode(SecretBundle.encode(["a": "x=1; y=\"2\"", "b": "é"])) == ["a": "x=1; y=\"2\"", "b": "é"], "secrets : aller-retour JSON, guillemets et accents")
+check(SecretBundle.decode("pas du json") == nil && SecretBundle.decode("[1,2]") == nil, "secrets : texte invalide -> nil")
+
+let oneItem = FakeSecretStore()
+oneItem.items[BundledSecretStore.bundleAccount] = SecretBundle.encode(["claude_session_cookie": "AAA", "console_session_cookie": "BBB"])
+let bundled = BundledSecretStore(backend: oneItem)
+check(bundled.read(account: "claude_session_cookie") == "AAA" && bundled.read(account: "console_session_cookie") == "BBB", "magasin unique : lit les deux secrets")
+check(oneItem.reads == 1, "magasin unique : UNE seule lecture du trousseau pour deux secrets (un seul mot de passe)")
+check(bundled.read(account: "absent") == nil && oneItem.reads == 1, "magasin unique : un secret absent ne relit pas le trousseau")
+
+let writer = FakeSecretStore()
+writer.items[BundledSecretStore.bundleAccount] = SecretBundle.encode(["claude_session_cookie": "AAA", "console_session_cookie": "BBB"])
+let writing = BundledSecretStore(backend: writer)
+check(writing.write("CCC", account: "claude_session_cookie") && writing.read(account: "claude_session_cookie") == "CCC" && writing.read(account: "console_session_cookie") == "BBB", "magasin unique : écrire un secret garde l'autre")
+check(SecretBundle.decode(writer.items[BundledSecretStore.bundleAccount] ?? "")?["claude_session_cookie"] == "CCC", "magasin unique : la valeur est bien persistée")
+check(writing.delete(account: "console_session_cookie") && writing.read(account: "console_session_cookie") == nil && writing.read(account: "claude_session_cookie") == "CCC", "magasin unique : supprimer un secret garde l'autre")
+check(writing.delete(account: "claude_session_cookie") && writer.items[BundledSecretStore.bundleAccount] == nil, "magasin unique : dernier secret supprimé -> élément supprimé")
+
+let newBackend = FakeSecretStore()
+let oldItems = FakeSecretStore()
+oldItems.items = ["claude_session_cookie": "AAA", "console_session_cookie": "BBB"]
+let migrating = BundledSecretStore(backend: newBackend, legacy: oldItems, legacyAccounts: bundleAccounts)
+check(migrating.read(account: "claude_session_cookie") == "AAA" && migrating.read(account: "console_session_cookie") == "BBB", "migration : reprend les deux anciens éléments")
+check(SecretBundle.decode(newBackend.items[BundledSecretStore.bundleAccount] ?? "")?.count == 2 && oldItems.items.isEmpty, "migration : élément unique écrit, anciens éléments supprimés")
+check(oldItems.reads == 2 && newBackend.reads == 1, "migration : chaque ancien élément lu une fois")
+
+let onlyOne = FakeSecretStore()
+onlyOne.items = ["claude_session_cookie": "AAA"]
+let halfMigrated = BundledSecretStore(backend: FakeSecretStore(), legacy: onlyOne, legacyAccounts: bundleAccounts)
+check(halfMigrated.read(account: "claude_session_cookie") == "AAA" && halfMigrated.read(account: "console_session_cookie") == nil, "migration : un seul ancien élément suffit")
+
+let locked = FakeSecretStore()
+locked.items[BundledSecretStore.bundleAccount] = SecretBundle.encode(["claude_session_cookie": "AAA"])
+locked.forcedStatus = errSecAuthFailed
+let refused = BundledSecretStore(backend: locked, legacy: oldItems, legacyAccounts: bundleAccounts)
+check(refused.readResult(account: "claude_session_cookie").value == nil && refused.readResult(account: "claude_session_cookie").status == errSecAuthFailed, "accès refusé : le statut est transmis")
+check(!refused.write("ZZZ", account: "console_session_cookie") && locked.items[BundledSecretStore.bundleAccount] == SecretBundle.encode(["claude_session_cookie": "AAA"]), "accès refusé : rien n'est écrasé")
+locked.forcedStatus = nil
+check(refused.read(account: "claude_session_cookie") == "AAA", "accès refusé : réessaie ensuite et lit normalement")
+
 exit(failures == 0 ? 0 : 1)

@@ -2,6 +2,13 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.10.2 : 19 octobre 2026
+
+### Modifié
+- **Un seul mot de passe par mise à jour au lieu de deux (voire quatre)** : les deux cookies (claude.ai et Console) vivent maintenant dans **un seul élément du trousseau**, lu une seule fois par lancement. macOS lie l'autorisation du trousseau à l'empreinte du binaire, par élément ; avec un seul élément, une seule demande par nouvelle version.
+- **Migration automatique au premier lancement** : les deux anciens éléments sont lus, regroupés dans le nouvel élément, puis supprimés. Cette fois-ci seulement, macOS peut donc redemander l'autorisation pour les anciens éléments.
+- Un accès refusé au trousseau n'écrase plus rien : le contenu n'est ni mis en cache ni réécrit tant que la lecture n'a pas réussi.
+
 ## 1.10.1 : 19 octobre 2026
 
 ### Retiré

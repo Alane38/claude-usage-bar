@@ -12,7 +12,7 @@ SDK="${CUB_SDK:-$SDK_ROOT/MacOSX26.5.sdk}"
 
 mkdir -p build
 swiftc -sdk "$SDK" -o build/tests.new \
-    app/StatuslineUsage.swift app/KeychainStore.swift app/SecretStore.swift app/AppSecrets.swift app/UsageForecast.swift \
+    app/StatuslineUsage.swift app/KeychainStore.swift app/SecretStore.swift app/BundledSecretStore.swift app/AppSecrets.swift app/UsageForecast.swift \
     app/MenuBarDisplay.swift app/ApiCredits.swift app/ConsoleBalance.swift app/SyncHelpers.swift app/RefreshPolicy.swift \
     app/DesignModels.swift app/PaceText.swift app/UsageAnalytics.swift app/AlertRules.swift app/WeekPlan.swift \
     app/ForecastExport.swift app/SystemSettings.swift app/UsageHistory.swift app/CreditsSummary.swift \
