@@ -185,7 +185,7 @@ struct AlertLedger: Equatable {
 
     func has(_ key: String) -> Bool { sent[key] != nil }
 
-    mutating func mark(_ key: String, now: Date = Date()) {
+    mutating func mark(_ key: String, now: Date = AppClock.now) {
         sent[key] = now.timeIntervalSince1970
         let cutoff = now.timeIntervalSince1970 - Self.retention
         sent = sent.filter { $0.value >= cutoff }

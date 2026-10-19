@@ -32,7 +32,7 @@ enum UsageAnalytics {
     /// Rythme en points de pourcentage par heure sur les `lookback` dernières secondes, depuis le dernier reset.
     /// nil tant que les relevés ne couvrent pas `minElapsed` (5 minutes par défaut) ; 0 si rien n'a bougé.
     /// Pour la semaine, il faut une durée longue (nuits comprises) : une rafale de quelques heures ne dit rien du reste.
-    static func recentRate(_ samples: [UsageSample], series: UsageSeries, now: Date = Date(),
+    static func recentRate(_ samples: [UsageSample], series: UsageSeries, now: Date = AppClock.now,
                            lookback: TimeInterval = 30 * 60, minElapsed: TimeInterval = 5 * 60) -> Double? {
         var window = points(samples, series: series).filter { now.timeIntervalSince($0.time) <= lookback && $0.time <= now }
         // Le relevé qui suit la dernière grosse baisse ouvre la fenêtre courante.
@@ -46,7 +46,7 @@ enum UsageAnalytics {
     }
 
     /// Points de pourcentage consommés depuis minuit (heure locale) : somme des hausses, les remises à zéro sont ignorées.
-    static func usedToday(_ samples: [UsageSample], series: UsageSeries, now: Date = Date(),
+    static func usedToday(_ samples: [UsageSample], series: UsageSeries, now: Date = AppClock.now,
                           calendar: Calendar = .current) -> Double? {
         let midnight = calendar.startOfDay(for: now)
         let today = points(samples, series: series).filter { $0.time >= midnight && $0.time <= now }
@@ -79,14 +79,14 @@ enum UsageAnalytics {
 
     /// Durée affichée par la courbe : exactement celle des données (10 minutes au moins, 24 h au plus), pour que la
     /// courbe remplisse la largeur. Un axe fixe de 24 h écraserait un historique jeune dans un coin.
-    static func chartSpan(firstSample: Date?, now: Date = Date()) -> TimeInterval {
+    static func chartSpan(firstSample: Date?, now: Date = AppClock.now) -> TimeInterval {
         guard let firstSample else { return 24 * 3600 }
         return min(max(now.timeIntervalSince(firstSample), 10 * 60), 24 * 3600)
     }
 
     /// Série des dernières heures pour la courbe.
     static func series(_ samples: [UsageSample], series: UsageSeries, hours: Double = 24,
-                       now: Date = Date()) -> [(time: Date, percent: Double)] {
+                       now: Date = AppClock.now) -> [(time: Date, percent: Double)] {
         points(samples, series: series).filter { now.timeIntervalSince($0.time) <= hours * 3600 && $0.time <= now }
     }
 }
@@ -98,7 +98,7 @@ struct RecentForecast: Equatable {
     /// Heure d'atteinte de 100 % si le rythme récent continue, seulement si c'est avant le reset.
     let exhaustsAt: Date?
 
-    static func make(ratePerHour: Double, used: Double, resetsAt: Date, now: Date = Date()) -> RecentForecast {
+    static func make(ratePerHour: Double, used: Double, resetsAt: Date, now: Date = AppClock.now) -> RecentForecast {
         let hoursLeft = max(resetsAt.timeIntervalSince(now), 0) / 3600
         let projected = used + ratePerHour * hoursLeft
         var exhaustsAt: Date?

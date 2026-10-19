@@ -17,7 +17,7 @@ struct StatuslineUsage: Equatable {
 
     /// Une fenêtre dont l'heure de reset est passée est abandonnée (Claude Code fait pareil) :
     /// son pourcentage ne dit plus rien sur la fenêtre en cours.
-    static func parse(_ data: Data, capturedAt: Date, now: Date = Date()) -> StatuslineUsage? {
+    static func parse(_ data: Data, capturedAt: Date, now: Date = AppClock.now) -> StatuslineUsage? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let limits = root["rate_limits"] as? [String: Any] else { return nil }
 
@@ -41,7 +41,7 @@ struct StatuslineUsage: Equatable {
         !hasDisplayedData || capturedAt > displayedAt
     }
 
-    static func load(path: String = defaultPath, now: Date = Date()) -> StatuslineUsage? {
+    static func load(path: String = defaultPath, now: Date = AppClock.now) -> StatuslineUsage? {
         let url = URL(fileURLWithPath: path)
         guard let data = try? Data(contentsOf: url) else { return nil }
         let modified = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date) ?? now

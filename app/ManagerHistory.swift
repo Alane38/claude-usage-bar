@@ -51,9 +51,7 @@ extension UsageManager {
     }
     var weeklyUsedToday: Double? { usedTodayOverride ?? UsageAnalytics.usedToday(historySamples, series: .weekly) }
     var dayBudget: DayBudget? {
-        let days = UserDefaults.standard.stringArray(forKey: "exceptional_days") ?? []
-        return DayBudget.make(weeklyUsed: Double(weeklyUsage), usedToday: weeklyUsedToday, now: Date(), resetsAt: weeklyResetsAt,
-                              isException: exceptionOverride ?? ExceptionalDays.contains(days, date: Date()))
+        DayBudget.make(weeklyUsed: Double(weeklyUsage), usedToday: weeklyUsedToday, now: AppClock.now, resetsAt: weeklyResetsAt)
     }
 
     var sessionRecentForecast: RecentForecast? {

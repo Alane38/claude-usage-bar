@@ -18,7 +18,7 @@ enum Snapshot {
     }
 
     /// Historique fictif des dernières 24 h (dents de scie de sessions de 5 h) pour les aperçus.
-    static func demoHistory(session current: Double, now: Date = Date(), hours: Double = 24) -> [UsageSample] {
+    static func demoHistory(session current: Double, now: Date = AppClock.now, hours: Double = 24) -> [UsageSample] {
         let first = 288 - Int(hours * 12)
         return (max(first, 0)...288).map { index in
             let minutesAgo = Double(288 - index) * 5

@@ -20,7 +20,7 @@ struct ConsoleBalance: Equatable {
         return min(max((granted - balance) / granted, 0), 1)
     }
 
-    static func parse(credits: Data, spend: Data?, now: Date = Date()) -> ConsoleBalance? {
+    static func parse(credits: Data, spend: Data?, now: Date = AppClock.now) -> ConsoleBalance? {
         guard let root = try? JSONSerialization.jsonObject(with: credits) as? [String: Any],
               let amountMinor = number(root["amount"]) else { return nil }
 
@@ -38,12 +38,12 @@ struct ConsoleBalance: Equatable {
     }
 
     /// Jours avant la prochaine échéance connue : expiration des crédits, à défaut fin de période de dépense.
-    func daysLeft(now: Date = Date()) -> Int? {
+    func daysLeft(now: Date = AppClock.now) -> Int? {
         guard let deadline = nextExpiry ?? periodResetsAt else { return nil }
         return max(Int(ceil(deadline.timeIntervalSince(now) / 86400)), 0)
     }
 
-    func dailyBudget(now: Date = Date()) -> Double? {
+    func dailyBudget(now: Date = AppClock.now) -> Double? {
         guard let days = daysLeft(now: now), days > 0 else { return nil }
         return balance / Double(days)
     }

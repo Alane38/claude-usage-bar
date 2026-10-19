@@ -37,7 +37,7 @@ struct HistoryChart: View {
     // MARK: - Dessin
 
     private func position(_ point: (time: Date, percent: Double), in size: CGSize) -> CGPoint {
-        CGPoint(x: inset + (size.width - 2 * inset) * CGFloat(1 - Date().timeIntervalSince(point.time) / span),
+        CGPoint(x: inset + (size.width - 2 * inset) * CGFloat(1 - AppClock.now.timeIntervalSince(point.time) / span),
                 y: size.height * CGFloat(1 - min(max(point.percent, 0), ceiling) / ceiling))
     }
 
@@ -106,10 +106,10 @@ struct HistoryChart: View {
     @ViewBuilder
     private func hoverLayer(width: CGFloat) -> some View {
         if let hoverX, width > 0 {
-            let date = Date().addingTimeInterval(-span * Double(1 - (hoverX - inset) / (width - 2 * inset)))
+            let date = AppClock.now.addingTimeInterval(-span * Double(1 - (hoverX - inset) / (width - 2 * inset)))
             if let index = UsageAnalytics.nearestIndex(in: points, to: date) {
                 let point = points[index]
-                let x = inset + (width - 2 * inset) * CGFloat(1 - Date().timeIntervalSince(point.time) / span)
+                let x = inset + (width - 2 * inset) * CGFloat(1 - AppClock.now.timeIntervalSince(point.time) / span)
                 ZStack(alignment: .topLeading) {
                     Rectangle().fill(Color.primary.opacity(0.35)).frame(width: 1, height: plotHeight).offset(x: x)
                     Text("\(AlertRules.clock(point.time)) · \(Int(point.percent.rounded())) %")

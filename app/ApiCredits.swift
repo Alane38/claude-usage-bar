@@ -11,12 +11,12 @@ struct ApiCredits: Equatable {
     var remaining: Double { max(monthlyAmount - spent, 0) }
     var usedFraction: Double { monthlyAmount > 0 ? min(spent / monthlyAmount, 1) : 0 }
 
-    func daysLeft(now: Date = Date()) -> Int {
+    func daysLeft(now: Date = AppClock.now) -> Int {
         max(Int(ceil(cycleEndsAt.timeIntervalSince(now) / 86400)), 0)
     }
 
     /// Dépense quotidienne qui vide exactement le solde à l'expiration.
-    func dailyBudget(now: Date = Date()) -> Double? {
+    func dailyBudget(now: Date = AppClock.now) -> Double? {
         let days = daysLeft(now: now)
         return days > 0 ? remaining / Double(days) : nil
     }

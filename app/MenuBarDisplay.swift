@@ -30,7 +30,7 @@ enum MenuBarDisplay {
     static func state(mode: MenuBarMode,
                       sessionPercent: Int, sessionResetsAt: Date?,
                       weeklyPercent: Int, weeklyResetsAt: Date?,
-                      showReset: Bool, showText: Bool = true, now: Date = Date()) -> MenuBarState {
+                      showReset: Bool, showText: Bool = true, now: Date = AppClock.now) -> MenuBarState {
         var title: String
         var percent = sessionPercent
         var resetsAt = sessionResetsAt
@@ -59,7 +59,7 @@ enum MenuBarDisplay {
     }
 
     /// « 45 min », « 2h14 », « 3j 4h » : le plus court lisible d'un coup d'œil.
-    static func countdown(to date: Date, now: Date = Date()) -> String {
+    static func countdown(to date: Date, now: Date = AppClock.now) -> String {
         let totalMinutes = max(Int(date.timeIntervalSince(now) / 60), 0)
         let days = totalMinutes / 1440
         let hours = (totalMinutes % 1440) / 60

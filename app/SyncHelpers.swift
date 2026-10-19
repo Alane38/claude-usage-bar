@@ -13,7 +13,7 @@ enum SyncHelpers {
     }
 
     /// « à l'instant », « il y a 12 min », « il y a 3 h », « il y a 2 j ».
-    static func age(since date: Date, now: Date = Date()) -> String {
+    static func age(since date: Date, now: Date = AppClock.now) -> String {
         let minutes = max(Int(now.timeIntervalSince(date) / 60), 0)
         if minutes < 1 { return "à l'instant" }
         if minutes < 60 { return "il y a \(minutes) min" }
@@ -22,7 +22,7 @@ enum SyncHelpers {
     }
 
     /// Une donnée de plus de 10 minutes est signalée comme périmée (statusline sans session Claude Code active).
-    static func isStale(_ date: Date, now: Date = Date()) -> Bool {
+    static func isStale(_ date: Date, now: Date = AppClock.now) -> Bool {
         now.timeIntervalSince(date) > 600
     }
 }

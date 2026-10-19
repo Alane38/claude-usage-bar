@@ -2,6 +2,14 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.10.1 : 19 octobre 2026
+
+### Retiré
+- **Jour exceptionnel** (ajouté en 1.9.1) : il ne servait qu'à masquer le jaune et le rouge du budget du jour, qui n'est de toute façon qu'un repère. Le budget redevient le même tous les jours ; le réglage `exceptional_days` est supprimé de l'app installée.
+
+### Modifié
+- **Horloge fixe en mode démonstration** (`AppClock`) : les captures `--demo` se font toujours le 19/10/2026 à midi, donc la comparaison visuelle (`scripts/visual-check.sh`, tolérance 0,1 %) donne 0,000 % d'écart à toute heure et tous les jours. Avant, les décomptes et les jours du planning la faisaient varier de 0,1 à 2,6 %.
+
 ## 1.10.0 : 19 octobre 2026
 
 ### Ajouté

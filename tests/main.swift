@@ -498,12 +498,6 @@ check(OrganizationList.resolve(selected: "disparue", available: orgs, cookieOrg:
 check(OrganizationList.resolve(selected: nil, available: orgs, cookieOrg: nil) == nil, "organisation : rien -> nil")
 check(OrganizationList.resolve(selected: "ccc-3", available: [], cookieOrg: "aaa-1") == "ccc-3", "organisation : liste pas encore chargée -> le choix est gardé")
 
-// MARK: - Jour exceptionnel
-let exceptional = DayBudget(allowed: 24, used: 40, isException: true)
-check(exceptional.level == .exception && DayBudget(allowed: 24, used: 40).level == .over, "jour exceptionnel : pas d'alerte même au-delà du budget")
-check(DayBudgetText.line(exceptional).hasSuffix("jour exceptionnel") && !DayBudgetText.line(exceptional).contains("dépassé") && DayBudgetText.consequence(exceptional) == nil, "jour exceptionnel : texte neutre, sans conséquence annoncée")
-check(DayBudget.make(weeklyUsed: 40, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris, isException: true)?.level == .exception, "jour exceptionnel : transmis par make")
-check(ExceptionalDays.stamp(for: noon, calendar: paris) == "2026-10-19" && ExceptionalDays.contains(["2026-10-18", "2026-10-19"], date: noon, calendar: paris) && !ExceptionalDays.contains(["2026-10-18"], date: noon, calendar: paris), "jour exceptionnel : format AAAA-MM-JJ")
 
 // MARK: - Installation d'une mise à jour
 let goodSum = String(repeating: "ab", count: 32)

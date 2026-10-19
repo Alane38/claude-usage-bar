@@ -34,7 +34,7 @@ struct UsageHistory {
     }
 
     /// Réécrit le fichier sans les relevés trop anciens.
-    func prune(now: Date = Date()) {
+    func prune(now: Date = AppClock.now) {
         let kept = load(since: now.addingTimeInterval(-Self.retention))
         let encoder = JSONEncoder()
         let body = kept.compactMap { try? encoder.encode($0) }.map { String(decoding: $0, as: UTF8.self) }.joined(separator: "\n")

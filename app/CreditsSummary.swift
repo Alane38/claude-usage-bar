@@ -8,7 +8,7 @@ struct CreditsSummary: Equatable {
     let usedFraction: Double
     let detail: String
 
-    static func make(console: ConsoleBalance?, manual: ApiCredits?, now: Date = Date()) -> CreditsSummary? {
+    static func make(console: ConsoleBalance?, manual: ApiCredits?, now: Date = AppClock.now) -> CreditsSummary? {
         if let console { return fromConsole(console, now: now) }
         if let manual { return fromManual(manual, now: now) }
         return nil

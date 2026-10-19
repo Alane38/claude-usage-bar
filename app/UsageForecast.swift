@@ -28,7 +28,7 @@ enum UsageForecast {
     static let minElapsedFraction = 0.05
     static let underPaceThreshold = 80.0
 
-    static func forecast(usedPercent: Double, resetsAt: Date, windowLength: TimeInterval, now: Date = Date()) -> WindowForecast {
+    static func forecast(usedPercent: Double, resetsAt: Date, windowLength: TimeInterval, now: Date = AppClock.now) -> WindowForecast {
         let used = min(max(usedPercent, 0), 100)
         let secondsToReset = max(resetsAt.timeIntervalSince(now), 0)
         let elapsed = min(max(windowLength - secondsToReset, 0), windowLength)

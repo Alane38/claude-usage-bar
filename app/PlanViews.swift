@@ -11,8 +11,8 @@ struct WeekPlanDisclosure: View {
         guard let resetsAt = usageManager.weeklyResetsAt else { return nil }
         let used = Double(usageManager.weeklyUsage)
         if let usedToday = usageManager.weeklyUsedToday,
-           let plan = WeekPlan.makeFromMidnight(used: used, usedToday: usedToday, now: Date(), resetsAt: resetsAt) { return plan }
-        let segments = WeekPlan.make(used: used, now: Date(), resetsAt: resetsAt)
+           let plan = WeekPlan.makeFromMidnight(used: used, usedToday: usedToday, now: AppClock.now, resetsAt: resetsAt) { return plan }
+        let segments = WeekPlan.make(used: used, now: AppClock.now, resetsAt: resetsAt)
         return segments.isEmpty ? nil : DayPlan(usedBeforeToday: used, segments: segments)
     }
 
