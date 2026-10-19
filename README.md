@@ -11,6 +11,7 @@ Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar) 
 
 **Build** (sans Xcode.app, Command Line Tools + SDK 26) : `./scripts/build.sh` puis `open build/ClaudeUsageBar.app`. Tests : `./scripts/test.sh`.
 - Développement (défaut) : cookies dans un fichier protégé, aucune fenêtre du trousseau.
+- Version : `./scripts/bump-version.sh X.Y.Z`, puis une section dans `CHANGELOG.md` et un tag git `vX.Y.Z`.
 - Release : `./scripts/release.sh`, cookies dans le trousseau macOS (voir `docs/adr/001-stockage-des-secrets.md`).
 Aperçu de l'interface sans clic : `ClaudeUsageBar --snapshot /tmp/popover.png [--settings]`.
 
