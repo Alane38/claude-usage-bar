@@ -25,7 +25,7 @@ enum MenuBarDisplay {
     static func state(style: MenuBarStyle = .spark, mode: MenuBarMode,
                       sessionPercent: Int, sessionResetsAt: Date?,
                       weeklyPercent: Int, weeklyResetsAt: Date?,
-                      showReset: Bool, now: Date = Date()) -> MenuBarState {
+                      showReset: Bool, showText: Bool = true, now: Date = Date()) -> MenuBarState {
         var title: String
         var percent = sessionPercent
         var resetsAt = sessionResetsAt
@@ -52,7 +52,7 @@ enum MenuBarDisplay {
         if showReset, let resetsAt {
             title += " · \(countdown(to: resetsAt, now: now))"
         }
-        return MenuBarState(title: title, percent: percent)
+        return MenuBarState(title: showText ? title : "", percent: percent)
     }
 
     /// « 45 min », « 2h14 », « 3j 4h » : le plus court lisible d'un coup d'œil.

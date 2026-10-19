@@ -219,4 +219,10 @@ check(PaceText.chip(for: nil, percent: 10) == nil && PaceText.chip(for: nil, per
 check(PaceText.summary(for: calm, showsDailyBudget: false).hasPrefix("≈ "), "résumé : prévision au reset")
 check(PaceText.summary(for: forecastAt(5, left: UsageForecast.sessionLength - 60, length: UsageForecast.sessionLength), showsDailyBudget: false) == "", "résumé : vide trop tôt dans la fenêtre")
 
+// --- Icône seule ---
+let textless = MenuBarDisplay.state(style: .dualRing, mode: .session, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, showText: false, now: now)
+check(textless.title.isEmpty && textless.percent == 8, "barre : icône seule, aucun texte")
+let withText = MenuBarDisplay.state(style: .dualRing, mode: .session, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, showText: true, now: now)
+check(withText.title == " 8%", "barre : texte par défaut inchangé")
+
 exit(failures == 0 ? 0 : 1)

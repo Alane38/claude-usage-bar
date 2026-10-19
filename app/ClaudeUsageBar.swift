@@ -15,7 +15,8 @@ extension Color {
 }
 
 // Main entry point
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+    var anchorWindow: NSWindow?
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     var usageManager: UsageManager!
@@ -51,6 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initial guess; SwiftUI's intrinsic size (capped at 600) will drive the actual size.
         popover.contentSize = NSSize(width: 360, height: 320)
         popover.behavior = .transient
+        popover.delegate = self
         let hostingController = NSHostingController(rootView: PopoverView(
             usageManager: usageManager,
             statusManager: statusManager
@@ -339,7 +341,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.usageManager.updatePercentages()
             }
 
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            if isStatusItemVisible {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            } else {
+                showPopoverAtScreenCorner()
+            }
 
             // Add event monitor to detect clicks outside the popover
             eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
@@ -352,6 +358,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func closePopover() {
         popover.performClose(nil)
+        removeAnchorWindow()
 
         // Remove event monitor
         if let monitor = eventMonitor {
@@ -466,6 +473,7 @@ class UsageManager: ObservableObject {
     @Published var menuBarMode: MenuBarMode = .session
     @Published var menuBarShowReset: Bool = false
     @Published var menuBarStyle: MenuBarStyle = .spark
+    @Published var menuBarShowText: Bool = true
     @Published var popoverLayout: PopoverLayout = .gauges
     // Crédits API mensuels (Max/Team) : saisis à la main, la tuile n'apparaît qu'une fois la fin de cycle définie.
     @Published var apiCreditMonthly: Double = 100
@@ -569,6 +577,7 @@ class UsageManager: ObservableObject {
         let defaults = UserDefaults.standard
         menuBarMode = MenuBarMode(rawValue: defaults.string(forKey: "menubar_mode") ?? "") ?? .session
         menuBarShowReset = defaults.bool(forKey: "menubar_show_reset")
+        menuBarShowText = defaults.object(forKey: "menubar_show_text") as? Bool ?? true
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: "menubar_style") ?? "") ?? .spark
         popoverLayout = PopoverLayout(rawValue: defaults.string(forKey: "popover_layout") ?? "") ?? .gauges
         if defaults.object(forKey: "api_credit_monthly") != nil {
@@ -582,6 +591,7 @@ class UsageManager: ObservableObject {
         let defaults = UserDefaults.standard
         defaults.set(menuBarMode.rawValue, forKey: "menubar_mode")
         defaults.set(menuBarShowReset, forKey: "menubar_show_reset")
+        defaults.set(menuBarShowText, forKey: "menubar_show_text")
         defaults.set(menuBarStyle.rawValue, forKey: "menubar_style")
         defaults.set(popoverLayout.rawValue, forKey: "popover_layout")
         defaults.set(apiCreditMonthly, forKey: "api_credit_monthly")
@@ -1096,7 +1106,7 @@ class UsageManager: ObservableObject {
         let bar = MenuBarDisplay.state(style: menuBarStyle, mode: menuBarMode,
                                        sessionPercent: sessionUsage, sessionResetsAt: sessionResetsAt,
                                        weeklyPercent: weeklyUsage, weeklyResetsAt: weeklyResetsAt,
-                                       showReset: menuBarShowReset)
+                                       showReset: menuBarShowReset, showText: menuBarShowText)
         let icon = menuBarIcon()
         delegate?.updateStatusIcon(percentage: bar.percent, title: bar.title, image: icon.image, tone: icon.tone)
     }

@@ -10,13 +10,15 @@ struct MenuBarPreview: View {
         let bar = MenuBarDisplay.state(style: style ?? usageManager.menuBarStyle, mode: usageManager.menuBarMode,
                                        sessionPercent: usageManager.sessionUsage, sessionResetsAt: usageManager.sessionResetsAt,
                                        weeklyPercent: usageManager.weeklyUsage, weeklyResetsAt: usageManager.weeklyResetsAt,
-                                       showReset: usageManager.menuBarShowReset)
+                                       showReset: usageManager.menuBarShowReset, showText: usageManager.menuBarShowText)
         let icon = usageManager.menuBarIcon(style: style)
         let image = icon.image
             ?? (NSApp.delegate as? AppDelegate)?.createSparkIcon(color: MenuBarIcons.color(for: icon.tone))
         HStack(spacing: 6) {
             if let image { Image(nsImage: image) }
-            Text(bar.title.trimmingCharacters(in: .whitespaces)).font(.system(size: 13, weight: .medium))
+            if !bar.title.isEmpty {
+                Text(bar.title.trimmingCharacters(in: .whitespaces)).font(.system(size: 13, weight: .medium))
+            }
         }
         .padding(.horizontal, 12)
         .frame(height: 30)
@@ -54,7 +56,12 @@ struct DisplayTab: View {
                         ForEach(MenuBarMode.allCases, id: \.self) { Text($0.label).tag($0) }
                     }
                 }
+                Toggle("Afficher le texte à côté de l'icône", isOn: bind(\.menuBarShowText))
+                Text("Désactive-le si la barre de menu est pleine : macOS masque alors les icônes les plus à gauche.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 Toggle("Afficher le temps avant le reset", isOn: bind(\.menuBarShowReset))
+                    .disabled(!usageManager.menuBarShowText)
                 LabeledContent("Aperçu") { MenuBarPreview(usageManager: usageManager) }
             }
             Section("Apparence") {
