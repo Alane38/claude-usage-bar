@@ -430,4 +430,12 @@ check(UsageAnalytics.chartSpan(firstSample: at(-2), now: spanNow) == 10 * 60, "c
 check(UsageAnalytics.chartSpan(firstSample: at(-60 * 40), now: spanNow) == 24 * 3600, "courbe : plafonnée à 24 h")
 check(abs(UsageAnalytics.chartSpan(firstSample: at(-60 * 5), now: spanNow) - 5 * 3600) < 1, "courbe : 5 h de données -> axe de 5 h")
 
+// --- Plafond de l'axe et survol ---
+check(UsageAnalytics.chartCeiling(maxPercent: 12) == 20 && UsageAnalytics.chartCeiling(maxPercent: 15) == 20, "axe : jusqu'à 15 % -> plafond 20 %")
+check(UsageAnalytics.chartCeiling(maxPercent: 16) == 50 && UsageAnalytics.chartCeiling(maxPercent: 40) == 50, "axe : de 16 à 40 % -> plafond 50 %")
+check(UsageAnalytics.chartCeiling(maxPercent: 41) == 100 && UsageAnalytics.chartCeiling(maxPercent: 95) == 100, "axe : au-delà de 40 % -> 100 %")
+let hoverPoints = [(time: at(0), percent: 10.0), (time: at(5), percent: 12.0), (time: at(10), percent: 14.0)]
+check(UsageAnalytics.nearestIndex(in: hoverPoints, to: at(6)) == 1 && UsageAnalytics.nearestIndex(in: hoverPoints, to: at(100)) == 2 && UsageAnalytics.nearestIndex(in: hoverPoints, to: at(-50)) == 0, "survol : relevé le plus proche")
+check(UsageAnalytics.nearestIndex(in: [(time: Date, percent: Double)](), to: at(0)) == nil, "survol : sans relevé -> nil")
+
 exit(failures == 0 ? 0 : 1)

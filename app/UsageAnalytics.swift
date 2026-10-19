@@ -64,6 +64,19 @@ enum UsageAnalytics {
         previous.percent - next.percent > resetDropThreshold || next.time.timeIntervalSince(previous.time) > maxGap
     }
 
+    /// Plafond de l'axe vertical : 20, 50 ou 100 % (repères propres : 10/20, 25/50, 50/100). Un axe figé à 100 % aplatit
+    /// une courbe qui reste basse, mais il est toujours étiqueté (pas de zoom caché) et repasse à 100 % dès que l'usage monte.
+    static func chartCeiling(maxPercent: Double) -> Double {
+        if maxPercent <= 15 { return 20 }
+        if maxPercent <= 40 { return 50 }
+        return 100
+    }
+
+    /// Indice du relevé le plus proche d'un instant (survol), nil sans relevé.
+    static func nearestIndex(in points: [(time: Date, percent: Double)], to date: Date) -> Int? {
+        points.indices.min { abs(points[$0].time.timeIntervalSince(date)) < abs(points[$1].time.timeIntervalSince(date)) }
+    }
+
     /// Durée affichée par la courbe : exactement celle des données (10 minutes au moins, 24 h au plus), pour que la
     /// courbe remplisse la largeur. Un axe fixe de 24 h écraserait un historique jeune dans un coin.
     static func chartSpan(firstSample: Date?, now: Date = Date()) -> TimeInterval {

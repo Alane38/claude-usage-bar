@@ -2,6 +2,14 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.6.6 : 19 octobre 2026
+
+### Modifié
+- **Courbe d'historique refaite selon les bonnes pratiques de visualisation** : ligne de 2 pt, lavis léger (10 %) sous la courbe, grille pleine et discrète (plus de pointillés), point final de 8 pt avec anneau, étiquettes ciblées (valeur finale, pic), texte en encre discrète.
+- **Axe vertical adaptatif et toujours étiqueté** (20, 50 ou 100 %) : une session basse n'est plus écrasée en bas, et l'axe repasse à 100 % dès que l'usage monte.
+- **Survol** : repère vertical et info-bulle « heure · valeur » sur le relevé le plus proche.
+- Description pour VoiceOver (durée, valeur de départ, valeur finale, pic).
+
 ## 1.6.5 : 19 octobre 2026
 
 ### Modifié
