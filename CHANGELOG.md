@@ -2,6 +2,17 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.6.0 : 19 octobre 2026
+
+### Nouveau
+- **Alertes anticipées** (réglables une par une) : « tu atteindras 100 % vers 18 h 40 » avant que ça arrive, part de session ou de semaine **inutilisée** avant un reset, **session libérée** après la limite, **session claude.ai expirée**, **crédits API qui expirent** (à 5, 2 et 1 jour). Chaque alerte n'est envoyée qu'une fois.
+- **Historique local** (un relevé par minute, 8 jours, fichier réservé à l'utilisateur) : courbe de la session sur 24 h, consommation du jour (« +9 % de la semaine »), **rythme récent** (par heure) et heure d'atteinte de 100 % à ce rythme.
+- **Planning de la semaine** : part de la limite utilisable chaque jour jusqu'au reset, au prorata des heures.
+- **Export de la prévision** (`forecast.json`) pour le statusline de Claude Code, avec une ligne prête à afficher (réglable dans l'onglet Général).
+
+### Modifié
+- Notifications via UserNotifications (l'API dépréciée de l'original disparaît) : zéro avertissement de compilation.
+
 ## 1.5.0 : 19 octobre 2026
 
 ### Nouveau

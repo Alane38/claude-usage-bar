@@ -489,6 +489,7 @@ class UsageManager: ObservableObject {
     @Published var menuBarShowReset: Bool = false
     @Published var menuBarStyle: MenuBarStyle = .spark
     @Published var menuBarShowText: Bool = true
+    @Published var exportsForecast: Bool = true
     @Published var popoverLayout: PopoverLayout = .gauges
     // Crédits API mensuels (Max/Team) : saisis à la main, la tuile n'apparaît qu'une fois la fin de cycle définie.
     @Published var apiCreditMonthly: Double = 100
@@ -605,6 +606,7 @@ class UsageManager: ObservableObject {
         }
         menuBarShowReset = defaults.bool(forKey: "menubar_show_reset")
         menuBarShowText = defaults.object(forKey: "menubar_show_text") as? Bool ?? true
+        exportsForecast = defaults.object(forKey: "export_forecast") as? Bool ?? true
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: "menubar_style") ?? "") ?? .spark
         popoverLayout = PopoverLayout(rawValue: defaults.string(forKey: "popover_layout") ?? "") ?? .gauges
         if defaults.object(forKey: "api_credit_monthly") != nil {
@@ -621,6 +623,8 @@ class UsageManager: ObservableObject {
         }
         defaults.set(menuBarShowReset, forKey: "menubar_show_reset")
         defaults.set(menuBarShowText, forKey: "menubar_show_text")
+        defaults.set(exportsForecast, forKey: "export_forecast")
+        if !exportsForecast { try? FileManager.default.removeItem(at: ForecastExport.defaultURL) }
         defaults.set(menuBarStyle.rawValue, forKey: "menubar_style")
         defaults.set(popoverLayout.rawValue, forKey: "popover_layout")
         defaults.set(apiCreditMonthly, forKey: "api_credit_monthly")

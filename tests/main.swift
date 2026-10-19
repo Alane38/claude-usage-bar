@@ -371,4 +371,26 @@ check(sameDay.count == 1 && abs(sameDay[0].percent - 50) < 0.0001, "planning : r
 let longPlan = WeekPlan.make(used: 0, now: planBase.addingTimeInterval(1 * 3600), resetsAt: planBase.addingTimeInterval((6 * 24 + 12) * 3600), calendar: utc)
 check(longPlan.count == 7 && longPlan[2].label.count == 3, "planning : sept jours, noms courts à partir du troisième")
 
+// --- Export de la prévision (statusline) ---
+let exportNow = Date(timeIntervalSince1970: 1_800_000_000)
+let sessionWindow = UsageForecast.forecast(usedPercent: 60, resetsAt: exportNow.addingTimeInterval(3 * 3600), windowLength: UsageForecast.sessionLength, now: exportNow)
+let weeklyWindow = UsageForecast.forecast(usedPercent: 37, resetsAt: exportNow.addingTimeInterval(2.5 * 86400), windowLength: UsageForecast.weekLength, now: exportNow)
+let exported = ForecastExport.make(now: exportNow, sessionPercent: 60, sessionResetsAt: exportNow.addingTimeInterval(3 * 3600),
+                                   sessionForecast: sessionWindow, sessionRecent: nil, weeklyPercent: 37,
+                                   weeklyResetsAt: exportNow.addingTimeInterval(2.5 * 86400), weeklyForecast: weeklyWindow,
+                                   weeklyRecent: nil, usedToday: 9, credits: real)
+check(exported.line.hasPrefix("Prévision · session ≈ 150 %") && exported.line.contains("100 % vers") && exported.line.contains("semaine ≈ 58 %"), "export : ligne de résumé (session qui dépasse, semaine)")
+check(exported.line.contains("%/j)"), "export : budget par jour dans la ligne")
+check(exported.session?.pace == "over" && exported.weekly?.pace == "under", "export : état du rythme")
+check(exported.usedTodayPercent == 9 && exported.credits?.balance == 100, "export : consommation du jour et crédits")
+if let data = exported.encoded() {
+    let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+    check((try? decoder.decode(ForecastExport.self, from: data)) == exported, "export : JSON relu à l'identique")
+    let text = String(decoding: data, as: UTF8.self)
+    check(text.contains("\"updatedAt\"") && text.contains("\"line\"") && text.contains("\"version\" : 1"), "export : champs attendus par le statusline")
+} else { check(false, "export : encodage") }
+let empty = ForecastExport.make(now: exportNow, sessionPercent: nil, sessionResetsAt: nil, sessionForecast: nil, sessionRecent: nil,
+                                weeklyPercent: nil, weeklyResetsAt: nil, weeklyForecast: nil, weeklyRecent: nil, usedToday: nil, credits: nil)
+check(empty.line.isEmpty && empty.session == nil, "export : sans données, ligne vide")
+
 exit(failures == 0 ? 0 : 1)

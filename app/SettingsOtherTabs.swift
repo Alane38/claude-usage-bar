@@ -159,6 +159,14 @@ struct GeneralTab: View {
                     get: { usageManager.openAtLogin },
                     set: { usageManager.openAtLogin = $0; usageManager.applyLoginItem($0); usageManager.saveSettings() }))
             }
+            Section("Statusline de Claude Code") {
+                Toggle("Exporter la prévision", isOn: Binding(
+                    get: { usageManager.exportsForecast },
+                    set: { usageManager.exportsForecast = $0; usageManager.saveDisplaySettings() }))
+                Text("Écrit ~/Library/Application Support/ClaudeUsageBar/forecast.json chaque minute. Ton statusline peut en afficher la ligne de prévision.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             Section("Raccourci clavier") {
                 Toggle("Afficher le popover avec ⌘U", isOn: Binding(
                     get: { usageManager.shortcutEnabled },

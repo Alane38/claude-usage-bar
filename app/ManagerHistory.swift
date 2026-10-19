@@ -25,6 +25,23 @@ extension UsageManager {
         historySamples.append(sample)
         let cutoff = date.addingTimeInterval(-24 * 3600).timeIntervalSince1970
         historySamples.removeAll { $0.time < cutoff }
+        exportForecast(now: date)
+    }
+
+    /// Écrit la prévision courante dans un fichier lu par le statusline de Claude Code (si l'export est activé).
+    func exportForecast(now: Date = Date()) {
+        guard !isProbeRun, exportsForecast else { return }
+        let export = ForecastExport.make(
+            now: now,
+            sessionPercent: sessionResetsAt == nil ? nil : Double(sessionUsage), sessionResetsAt: sessionResetsAt,
+            sessionForecast: sessionForecast, sessionRecent: sessionRecentForecast,
+            weeklyPercent: weeklyResetsAt == nil ? nil : Double(weeklyUsage), weeklyResetsAt: weeklyResetsAt,
+            weeklyForecast: weeklyForecast, weeklyRecent: weeklyRecentForecast,
+            usedToday: weeklyUsedToday, credits: consoleBalance)
+        guard let data = export.encoded() else { return }
+        let url = ForecastExport.defaultURL
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? data.write(to: url, options: .atomic)
     }
 
     var sessionRecentRate: Double? { UsageAnalytics.recentRate(historySamples, series: .session) }
