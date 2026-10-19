@@ -24,7 +24,7 @@ extension UsageManager {
             switch menuBarMode {
             case .session: return (nil, sessionTone)
             case .weekly:  return (nil, weeklyTone)
-            case .worst:   return (nil, UsageTone.worst([sessionTone, weeklyTone]))
+            case .worst, .both: return (nil, UsageTone.worst([sessionTone, weeklyTone]))
             }
         }
     }

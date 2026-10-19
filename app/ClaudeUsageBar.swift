@@ -470,7 +470,13 @@ class UsageManager: ObservableObject {
     @Published var hasFetchedData: Bool = false
     @Published var isAccessibilityEnabled: Bool = false
     @Published var shortcutEnabled: Bool = true
-    @Published var menuBarMode: MenuBarMode = .session
+    @Published var menuBarModes: [MenuBarStyle: MenuBarMode] = Dictionary(
+        uniqueKeysWithValues: MenuBarStyle.allCases.map { ($0, MenuBarMode.defaultMode(for: $0)) })
+    /// Valeur affichée du style courant : chaque style garde son propre choix.
+    var menuBarMode: MenuBarMode {
+        get { menuBarModes[menuBarStyle] ?? MenuBarMode.defaultMode(for: menuBarStyle) }
+        set { menuBarModes[menuBarStyle] = newValue }
+    }
     @Published var menuBarShowReset: Bool = false
     @Published var menuBarStyle: MenuBarStyle = .spark
     @Published var menuBarShowText: Bool = true
@@ -575,7 +581,10 @@ class UsageManager: ObservableObject {
 
     private func loadDisplaySettings() {
         let defaults = UserDefaults.standard
-        menuBarMode = MenuBarMode(rawValue: defaults.string(forKey: "menubar_mode") ?? "") ?? .session
+        for style in MenuBarStyle.allCases {
+            let key = style == .spark ? "menubar_mode" : "menubar_mode_\(style.rawValue)"
+            menuBarModes[style] = MenuBarMode(rawValue: defaults.string(forKey: key) ?? "") ?? MenuBarMode.defaultMode(for: style)
+        }
         menuBarShowReset = defaults.bool(forKey: "menubar_show_reset")
         menuBarShowText = defaults.object(forKey: "menubar_show_text") as? Bool ?? true
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: "menubar_style") ?? "") ?? .spark
@@ -589,7 +598,9 @@ class UsageManager: ObservableObject {
 
     func saveDisplaySettings() {
         let defaults = UserDefaults.standard
-        defaults.set(menuBarMode.rawValue, forKey: "menubar_mode")
+        for (style, mode) in menuBarModes {
+            defaults.set(mode.rawValue, forKey: style == .spark ? "menubar_mode" : "menubar_mode_\(style.rawValue)")
+        }
         defaults.set(menuBarShowReset, forKey: "menubar_show_reset")
         defaults.set(menuBarShowText, forKey: "menubar_show_text")
         defaults.set(menuBarStyle.rawValue, forKey: "menubar_style")
@@ -1103,7 +1114,7 @@ class UsageManager: ObservableObject {
 
     /// Redessine l'icône et le titre sans toucher aux notifications (appelé aussi chaque minute pour le décompte).
     func refreshMenuBar() {
-        let bar = MenuBarDisplay.state(style: menuBarStyle, mode: menuBarMode,
+        let bar = MenuBarDisplay.state(mode: menuBarMode,
                                        sessionPercent: sessionUsage, sessionResetsAt: sessionResetsAt,
                                        weeklyPercent: weeklyUsage, weeklyResetsAt: weeklyResetsAt,
                                        showReset: menuBarShowReset, showText: menuBarShowText)

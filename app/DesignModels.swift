@@ -33,7 +33,7 @@ enum MenuBarStyle: String, CaseIterable {
 
     var summary: String {
         switch self {
-        case .spark:     return "L'étincelle colorée avec une valeur au choix."
+        case .spark:     return "L'étincelle colorée."
         case .dualRing:  return "Anneau externe : semaine. Anneau interne : session."
         case .twoValues: return "Deux barres fines : session et semaine."
         }

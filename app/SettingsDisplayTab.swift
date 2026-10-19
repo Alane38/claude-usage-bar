@@ -7,7 +7,7 @@ struct MenuBarPreview: View {
     var style: MenuBarStyle?
 
     var body: some View {
-        let bar = MenuBarDisplay.state(style: style ?? usageManager.menuBarStyle, mode: usageManager.menuBarMode,
+        let bar = MenuBarDisplay.state(mode: style.map { usageManager.menuBarModes[$0] ?? MenuBarMode.defaultMode(for: $0) } ?? usageManager.menuBarMode,
                                        sessionPercent: usageManager.sessionUsage, sessionResetsAt: usageManager.sessionResetsAt,
                                        weeklyPercent: usageManager.weeklyUsage, weeklyResetsAt: usageManager.weeklyResetsAt,
                                        showReset: usageManager.menuBarShowReset, showText: usageManager.menuBarShowText)
@@ -51,10 +51,8 @@ struct DisplayTab: View {
                 }
                 .pickerStyle(.segmented)
                 Text(usageManager.menuBarStyle.summary).font(.caption).foregroundColor(.secondary)
-                if usageManager.menuBarStyle == .spark {
-                    Picker("Valeur affichée", selection: bind(\.menuBarMode)) {
-                        ForEach(MenuBarMode.allCases, id: \.self) { Text($0.label).tag($0) }
-                    }
+                Picker("Valeur affichée", selection: bind(\.menuBarMode)) {
+                    ForEach(MenuBarMode.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
                 Toggle("Afficher le texte à côté de l'icône", isOn: bind(\.menuBarShowText))
                 Text("Désactive-le si la barre de menu est pleine : macOS masque alors les icônes les plus à gauche.")

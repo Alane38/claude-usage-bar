@@ -186,9 +186,9 @@ check(abs(ring.on - 15.708) < 0.001 && abs(ring.on + ring.off - 62.832) < 0.001,
 check(RingGeometry.dash(percent: 150, radius: 10).off == 0 && RingGeometry.dash(percent: -5, radius: 10).on == 0, "anneau : pourcentage borné")
 
 // --- Titre de la barre de menu selon le style ---
-let ringTitle = MenuBarDisplay.state(style: .dualRing, mode: .worst, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, now: now)
+let ringTitle = MenuBarDisplay.state(mode: .session, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, now: now)
 check(ringTitle.title == " 8% · 2h14" && ringTitle.percent == 8, "barre : double anneau = session + reset")
-let twoTitle = MenuBarDisplay.state(style: .twoValues, mode: .session, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, now: now)
+let twoTitle = MenuBarDisplay.state(mode: .both, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, now: now)
 check(twoTitle.title == " 8 · 37" && twoTitle.percent == 37, "barre : deux valeurs, la plus haute pilote la couleur")
 
 // --- Résumé des crédits ---
@@ -220,9 +220,9 @@ check(PaceText.summary(for: calm, showsDailyBudget: false).hasPrefix("≈ "), "r
 check(PaceText.summary(for: forecastAt(5, left: UsageForecast.sessionLength - 60, length: UsageForecast.sessionLength), showsDailyBudget: false) == "", "résumé : vide trop tôt dans la fenêtre")
 
 // --- Icône seule ---
-let textless = MenuBarDisplay.state(style: .dualRing, mode: .session, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, showText: false, now: now)
+let textless = MenuBarDisplay.state(mode: .session, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, showText: false, now: now)
 check(textless.title.isEmpty && textless.percent == 8, "barre : icône seule, aucun texte")
-let withText = MenuBarDisplay.state(style: .dualRing, mode: .session, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, showText: true, now: now)
+let withText = MenuBarDisplay.state(mode: .session, sessionPercent: 8, sessionResetsAt: nil, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, showText: true, now: now)
 check(withText.title == " 8%", "barre : texte par défaut inchangé")
 
 // --- Stockage des secrets par fichier (mode développement) ---
@@ -239,5 +239,13 @@ check(fileStore.delete(account: "a") && fileStore.read(account: "a") == nil, "fi
 check(fileStore.delete(account: "jamais-existé"), "fichier : supprimer l'absent réussit")
 try? FileManager.default.removeItem(at: secretsDir)
 check(!AppSecrets.isRelease && AppSecrets.storageLabel.contains("développement"), "mode : la compilation de test est en développement")
+
+// --- Valeur affichée par style ---
+let ringWeekly = MenuBarDisplay.state(mode: .weekly, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: false, now: now)
+check(ringWeekly.title == " 37%" && ringWeekly.percent == 37, "valeur : hebdo seule")
+let bothReset = MenuBarDisplay.state(mode: .both, sessionPercent: 8, sessionResetsAt: in2h14, weeklyPercent: 37, weeklyResetsAt: nil, showReset: true, now: now)
+check(bothReset.title == " 8 · 37 · 2h14", "valeur : les deux avec reset de la session")
+check(MenuBarMode.defaultMode(for: .twoValues) == .both && MenuBarMode.defaultMode(for: .spark) == .session && MenuBarMode.defaultMode(for: .dualRing) == .session, "valeur : défaut par style")
+check(MenuBarMode.allCases.count == 4, "valeur : quatre choix")
 
 exit(failures == 0 ? 0 : 1)

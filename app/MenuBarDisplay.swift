@@ -1,15 +1,21 @@
 import Foundation
 
-/// Ce que la barre de menu affiche : la session, l'hebdo, ou la fenêtre la plus proche de la limite.
+/// La valeur écrite à côté de l'icône : la session, l'hebdo, la plus haute des deux, ou les deux.
+/// Chaque style de barre de menu garde son propre choix (voir `defaultMode(for:)`).
 enum MenuBarMode: String, CaseIterable {
-    case session, weekly, worst
+    case session, weekly, worst, both
 
     var label: String {
         switch self {
         case .session: return "Session (5 h)"
         case .weekly:  return "Hebdo (7 j)"
         case .worst:   return "La plus haute"
+        case .both:    return "Les deux"
         }
+    }
+
+    static func defaultMode(for style: MenuBarStyle) -> MenuBarMode {
+        style == .twoValues ? .both : .session
     }
 }
 
@@ -20,9 +26,8 @@ struct MenuBarState: Equatable {
 }
 
 enum MenuBarDisplay {
-    /// Titre à droite de l'icône. Le mode (session, hebdo, la plus haute) ne vaut que pour l'étincelle :
-    /// les deux autres styles montrent déjà session et semaine dans leur dessin.
-    static func state(style: MenuBarStyle = .spark, mode: MenuBarMode,
+    /// Titre à droite de l'icône, selon la valeur choisie. Le style ne change que le dessin, pas le texte.
+    static func state(mode: MenuBarMode,
                       sessionPercent: Int, sessionResetsAt: Date?,
                       weeklyPercent: Int, weeklyResetsAt: Date?,
                       showReset: Bool, showText: Bool = true, now: Date = Date()) -> MenuBarState {
@@ -30,23 +35,21 @@ enum MenuBarDisplay {
         var percent = sessionPercent
         var resetsAt = sessionResetsAt
 
-        switch style {
-        case .dualRing:
+        switch mode {
+        case .session:
             title = " \(sessionPercent)%"
-        case .twoValues:
-            title = " \(sessionPercent) · \(weeklyPercent)"
-            percent = max(sessionPercent, weeklyPercent)
-        case .spark:
-            let showsWeekly: Bool
-            switch mode {
-            case .session: showsWeekly = false
-            case .weekly:  showsWeekly = true
-            case .worst:   showsWeekly = weeklyPercent > sessionPercent
-            }
+        case .weekly:
+            percent = weeklyPercent
+            resetsAt = weeklyResetsAt
+            title = " \(weeklyPercent)%"
+        case .worst:
+            let showsWeekly = weeklyPercent > sessionPercent
             percent = showsWeekly ? weeklyPercent : sessionPercent
             resetsAt = showsWeekly ? weeklyResetsAt : sessionResetsAt
-            title = " \(percent)%"
-            if mode == .worst { title += showsWeekly ? " 7j" : " 5h" }
+            title = " \(percent)%" + (showsWeekly ? " 7j" : " 5h")
+        case .both:
+            percent = max(sessionPercent, weeklyPercent)
+            title = " \(sessionPercent) · \(weeklyPercent)"
         }
 
         if showReset, let resetsAt {
