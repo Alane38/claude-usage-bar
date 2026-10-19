@@ -17,6 +17,8 @@ struct WindowForecast: Equatable {
     /// Part de la limite utilisable par jour d'ici au reset sans dépasser 100 %.
     let remainingPerDay: Double
     let pace: Pace
+    /// Durée totale de la fenêtre en heures (5 pour la session, 168 pour la semaine).
+    let windowHours: Double
 }
 
 enum UsageForecast {
@@ -48,7 +50,8 @@ enum UsageForecast {
                               projectedPercent: projected,
                               exhaustsAt: exhaustsAt,
                               remainingPerDay: remainingPerDay,
-                              pace: pace(used: used, projected: projected))
+                              pace: pace(used: used, projected: projected),
+                              windowHours: windowLength / 3600)
     }
 
     private static func pace(used: Double, projected: Double?) -> Pace {

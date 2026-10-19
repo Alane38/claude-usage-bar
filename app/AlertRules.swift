@@ -48,6 +48,10 @@ struct AlertContext {
     var previousSessionPercent: Double?
     var consecutiveAuthFailures: Int
     var credits: ConsoleBalance?
+    /// Rythmes actuels (points de pourcentage par heure) et budget quotidien conseillé, pour des messages chiffrés.
+    var sessionRatePerHour: Double? = nil
+    var weeklyRatePerHour: Double? = nil
+    var weeklyBudgetPerDay: Double? = nil
 }
 
 /// Règles d'alerte pures. L'appelant fournit un registre (`alreadySent`) pour ne jamais répéter un message.
@@ -69,17 +73,20 @@ enum AlertRules {
         if let eta = c.sessionETA, let resetsAt = c.sessionResetsAt, c.sessionPercent >= 25, c.sessionPercent < 100,
            eta > c.now, eta < resetsAt, eta.timeIntervalSince(c.now) <= 90 * 60 {
             let imminent = eta.timeIntervalSince(c.now) <= 15 * 60
+            let rate = c.sessionRatePerHour.map { "tu consommes environ \(Int($0.rounded())) % par heure. " } ?? ""
             result.append(AlertMessage(
                 kind: .willExhaust, key: "exhaust-session-\(minute(resetsAt))\(imminent ? "-imminent" : "")",
-                title: imminent ? "Limite de session dans \(minutesLeft(until: eta, from: c.now)) min" : "Tu atteindras 100 % vers \(clock(eta))",
-                body: "Session à \(Int(c.sessionPercent.rounded())) %, reset à \(clock(resetsAt)). Ralentis pour tenir jusqu'au reset."))
+                title: imminent ? "Limite de session dans \(minutesLeft(until: eta, from: c.now)) min" : "Tu atteindras 100 % de la session vers \(clock(eta))",
+                body: "Tu es à \(Int(c.sessionPercent.rounded())) % et \(rate)Tu serais bloqué \(duration(resetsAt.timeIntervalSince(eta))), jusqu'au reset de \(clock(resetsAt)). Ralentis un peu pour tenir."))
         }
         if let eta = c.weeklyETA, let resetsAt = c.weeklyResetsAt, c.weeklyPercent >= 40, c.weeklyPercent < 100,
            eta > c.now, eta < resetsAt, eta.timeIntervalSince(c.now) <= 36 * 3600 {
+            let rate = c.weeklyRatePerHour.map { "Tu consommes environ \(formatRate($0)) % par heure. " } ?? ""
+            let advice = c.weeklyBudgetPerDay.map { " Pour tenir, ne dépasse pas \(Int($0.rounded())) % par jour." } ?? ""
             result.append(AlertMessage(
                 kind: .willExhaust, key: "exhaust-weekly-\(minute(resetsAt))-\(day(c.now))",
-                title: "Semaine à 100 % \(dayAndClock(eta))",
-                body: "À ce rythme tu seras bloqué jusqu'au reset (\(dayAndClock(resetsAt))). Étale ta consommation."))
+                title: "Limite de la semaine atteinte \(dayAndClock(eta))",
+                body: "\(rate)À ce rythme tu seras bloqué environ \(duration(resetsAt.timeIntervalSince(eta))), jusqu'au reset de \(dayAndClock(resetsAt)).\(advice)"))
         }
         return result
     }
@@ -145,7 +152,27 @@ enum AlertRules {
         return f
     }
 
-    static func clock(_ date: Date) -> String { formatter("HH:mm").string(from: date).replacingOccurrences(of: ":", with: " h ") }
+    static func clock(_ date: Date) -> String { formatter("H:mm").string(from: date).replacingOccurrences(of: ":", with: " h ") }
+
+    /// « 25 min », « 1 h 40 », « 38 h », « 3 j 4 h » : en jours seulement à partir de 48 h.
+    static func duration(_ seconds: TimeInterval) -> String {
+        let totalMinutes = max(Int((seconds / 60).rounded()), 0)
+        let days = totalMinutes / 1440
+        let hours = (totalMinutes % 1440) / 60
+        let minutes = totalMinutes % 60
+        if totalMinutes >= 48 * 60 { return hours > 0 ? "\(days) j \(hours) h" : "\(days) j" }
+        if totalMinutes >= 600 { return "\(totalMinutes / 60) h" }
+        if hours > 0 { return minutes > 0 ? "\(hours) h \(String(format: "%02d", minutes))" : "\(hours) h" }
+        return "\(minutes) min"
+    }
+
+    /// 3,4 sous 10 %/h, entier au-delà.
+    static func formatRate(_ rate: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.maximumFractionDigits = rate < 10 ? 1 : 0
+        return formatter.string(from: NSNumber(value: rate)) ?? "?"
+    }
     static func dayAndClock(_ date: Date) -> String { formatter("EEEE").string(from: date) + " à " + clock(date) }
 }
 

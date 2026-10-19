@@ -2,6 +2,15 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.6.2 : 19 octobre 2026
+
+### Modifié
+- **Alertes de limite plus explicites** : le titre dit de quelle limite il s'agit (« Limite de la semaine atteinte mercredi à 2 h 15 »), le texte donne ton rythme, la **durée pendant laquelle tu serais bloqué** et, pour la semaine, le **budget par jour à tenir**.
+- Heures sans zéro initial (« 0 h 03 » au lieu de « 00 h 03 »), durées courtes (« 1 h 20 », « 38 h », « 3 j 4 h »).
+
+### Nouveau
+- Bouton **« Voir des exemples d'alertes »** dans Réglages > Alertes, pour lire les textes avant qu'une vraie alerte arrive.
+
 ## 1.6.1 : 19 octobre 2026
 
 ### Nouveau

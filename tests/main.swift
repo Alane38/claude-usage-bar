@@ -305,7 +305,7 @@ func run(_ c: AlertContext, off: Set<AlertKind> = [], sent: Set<String> = []) ->
 }
 
 let burning = run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) })
-check(burning.count == 1 && burning[0].kind == .willExhaust && burning[0].title.hasPrefix("Tu atteindras 100 % vers"), "alerte : limite de session annoncée")
+check(burning.count == 1 && burning[0].kind == .willExhaust && burning[0].title.hasPrefix("Tu atteindras 100 % de la session vers"), "alerte : limite de session annoncée")
 let imminent = run(context { $0.sessionPercent = 90; $0.sessionResetsAt = later(120); $0.sessionETA = later(10) })
 check(imminent.first?.title == "Limite de session dans 10 min" && imminent.first?.key.hasSuffix("-imminent") == true, "alerte : limite imminente (clé distincte)")
 check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(130) }).isEmpty, "alerte : épuisement après le reset -> rien")
@@ -314,7 +314,7 @@ check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(300); $0.
 check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }, sent: [burning[0].key]).isEmpty, "alerte : déjà envoyée -> rien (dédoublonnage)")
 check(run(context { $0.sessionPercent = 60; $0.sessionResetsAt = later(120); $0.sessionETA = later(40) }, off: [.willExhaust]).isEmpty, "alerte : réglage désactivé -> rien")
 let weeklyBurn = run(context { $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 20) })
-check(weeklyBurn.first?.title.hasPrefix("Semaine à 100 %") == true, "alerte : semaine à 100 % annoncée")
+check(weeklyBurn.first?.title.hasPrefix("Limite de la semaine atteinte") == true, "alerte : semaine à 100 % annoncée")
 
 let unusedSession = run(context { $0.sessionPercent = 40; $0.sessionResetsAt = later(20) })
 check(unusedSession.first?.title == "Reset dans 20 min, 60 % inutilisés", "alerte : part de session inutilisée")
@@ -395,5 +395,23 @@ check(empty.line.isEmpty && empty.session == nil, "export : sans données, ligne
 
 // --- Lien vers les réglages macOS ---
 check(SystemSettings.fullDiskAccessURL.scheme == "x-apple.systempreferences" && SystemSettings.fullDiskAccessURL.absoluteString.hasSuffix("Privacy_AllFiles"), "réglages macOS : lien vers l'Accès complet au disque")
+
+// --- Messages d'alerte explicites (durée de blocage, rythme, budget) ---
+check(AlertRules.duration(25 * 60) == "25 min" && AlertRules.duration(100 * 60) == "1 h 40" && AlertRules.duration(38 * 3600) == "38 h" && AlertRules.duration(3 * 86400 + 4 * 3600) == "3 j 4 h" && AlertRules.duration(3600) == "1 h", "durée : formats courts")
+check(AlertRules.formatRate(3.4) == "3,4" && AlertRules.formatRate(12.4) == "12", "rythme : décimale sous 10 %/h")
+let detailed = run(context {
+    $0.sessionPercent = 61; $0.sessionResetsAt = later(120); $0.sessionETA = later(40); $0.sessionRatePerHour = 40
+})
+check(detailed.first?.body.contains("environ 40 % par heure") == true && detailed.first?.body.contains("bloqué 1 h 20") == true && detailed.first?.body.contains("reset de") == true, "alerte session : rythme et durée de blocage")
+let weeklyDetailed = run(context {
+    $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 10)
+    $0.weeklyRatePerHour = 3.4; $0.weeklyBudgetPerDay = 26
+})
+check(weeklyDetailed.first?.body.contains("3,4 % par heure") == true && weeklyDetailed.first?.body.contains("bloqué environ 38 h") == true && weeklyDetailed.first?.body.contains("ne dépasse pas 26 % par jour") == true, "alerte hebdo : rythme, durée de blocage et budget par jour")
+check(weeklyDetailed.first?.title.contains("Limite de la semaine atteinte") == true, "alerte hebdo : le titre dit qu'il s'agit de la limite hebdomadaire")
+let bare = run(context { $0.weeklyPercent = 70; $0.weeklyResetsAt = later(60 * 48); $0.weeklyETA = later(60 * 10) })
+check(bare.first?.body.contains("par heure") == false && bare.first?.body.contains("par jour") == false, "alerte hebdo : sans rythme ni budget, pas de chiffre inventé")
+let justAfterMidnight = Calendar.current.date(bySettingHour: 0, minute: 3, second: 0, of: Date())!
+check(AlertRules.clock(justAfterMidnight) == "0 h 03", "heure : pas de zéro initial (0 h 03)")
 
 exit(failures == 0 ? 0 : 1)

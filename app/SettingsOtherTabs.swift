@@ -112,6 +112,7 @@ struct AlertsTab: View {
                 Button("Envoyer une notification de test") { usageManager.sendTestNotification() }
             }
             Section("Alertes anticipées") {
+                Button("Voir des exemples d'alertes") { usageManager.sendDemoAlerts() }
                 ForEach(AlertKind.allCases, id: \.self) { kind in
                     VStack(alignment: .leading, spacing: 2) {
                         Toggle(kind.label, isOn: Binding(get: { usageManager.alertSettings.isOn(kind) },
