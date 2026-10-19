@@ -2,6 +2,12 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.6.5 : 19 octobre 2026
+
+### Modifié
+- **Courbe d'historique** : l'axe colle exactement à la durée des relevés (de 10 minutes à 24 h) au lieu de paliers ronds, donc la courbe remplit toute la largeur dès les premières minutes. Le titre et le libellé gauche donnent la durée réelle (« Historique · 19 min », « il y a 19 min »).
+- Repères **100 %** et **50 %**, point sur la valeur actuelle, et valeur de la session affichée à droite.
+
 ## 1.6.4 : 19 octobre 2026
 
 ### Corrigé

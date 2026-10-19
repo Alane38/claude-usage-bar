@@ -64,10 +64,11 @@ enum UsageAnalytics {
         previous.percent - next.percent > resetDropThreshold || next.time.timeIntervalSince(previous.time) > maxGap
     }
 
-    /// Échelle de la courbe : la plus petite durée ronde (1, 3, 6, 12 ou 24 h) qui contient tout l'historique disponible.
-    /// Avec 3 h de relevés, un axe de 24 h écraserait la courbe dans un coin.
-    static func chartHours(forSpan span: TimeInterval) -> Double {
-        [1.0, 3.0, 6.0, 12.0].first { span <= $0 * 3600 } ?? 24
+    /// Durée affichée par la courbe : exactement celle des données (10 minutes au moins, 24 h au plus), pour que la
+    /// courbe remplisse la largeur. Un axe fixe de 24 h écraserait un historique jeune dans un coin.
+    static func chartSpan(firstSample: Date?, now: Date = Date()) -> TimeInterval {
+        guard let firstSample else { return 24 * 3600 }
+        return min(max(now.timeIntervalSince(firstSample), 10 * 60), 24 * 3600)
     }
 
     /// Série des dernières heures pour la courbe.

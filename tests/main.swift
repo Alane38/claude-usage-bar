@@ -422,16 +422,12 @@ let fullDay = (0...30).map { sample(Double($0) * 60, w: 20 + Double($0) * 1.0) }
 let dayRate = UsageAnalytics.recentRate(fullDay, series: .weekly, now: at(30 * 60), lookback: 24 * 3600, minElapsed: 12 * 3600)
 check(abs((dayRate ?? 0) - 1.0) < 0.01, "rythme hebdo : une journée complète donne la vraie moyenne (1 %/h)")
 
-// --- Échelle de la courbe d'historique ---
-check(UsageAnalytics.chartHours(forSpan: 20 * 60) == 1 && UsageAnalytics.chartHours(forSpan: 2.5 * 3600) == 3, "échelle : 20 min -> 1 h, 2 h 30 -> 3 h")
-check(UsageAnalytics.chartHours(forSpan: 5 * 3600) == 6 && UsageAnalytics.chartHours(forSpan: 10 * 3600) == 12, "échelle : 5 h -> 6 h, 10 h -> 12 h")
-check(UsageAnalytics.chartHours(forSpan: 18 * 3600) == 24 && UsageAnalytics.chartHours(forSpan: 90 * 3600) == 24, "échelle : au-delà de 12 h -> 24 h")
-
-// --- Interruption du tracé ---
-let pointA = (time: at(0), percent: 40.0)
-check(!UsageAnalytics.breaksLine(from: pointA, to: (time: at(5), percent: 42)), "tracé : deux relevés proches restent reliés")
-check(UsageAnalytics.breaksLine(from: pointA, to: (time: at(5), percent: 3)), "tracé : une remise à zéro coupe la ligne")
-check(UsageAnalytics.breaksLine(from: pointA, to: (time: at(40), percent: 41)), "tracé : un trou de plus de 30 min coupe la ligne")
-check(!UsageAnalytics.breaksLine(from: pointA, to: (time: at(29), percent: 41)), "tracé : 29 min sans relevé restent reliées")
+// --- Durée affichée par la courbe ---
+let spanNow = at(0)
+check(UsageAnalytics.chartSpan(firstSample: nil, now: spanNow) == 24 * 3600, "courbe : sans relevé, 24 h par défaut")
+check(UsageAnalytics.chartSpan(firstSample: at(-25), now: spanNow) == 25 * 60, "courbe : 25 min de données -> axe de 25 min")
+check(UsageAnalytics.chartSpan(firstSample: at(-2), now: spanNow) == 10 * 60, "courbe : minimum 10 min")
+check(UsageAnalytics.chartSpan(firstSample: at(-60 * 40), now: spanNow) == 24 * 3600, "courbe : plafonnée à 24 h")
+check(abs(UsageAnalytics.chartSpan(firstSample: at(-60 * 5), now: spanNow) - 5 * 3600) < 1, "courbe : 5 h de données -> axe de 5 h")
 
 exit(failures == 0 ? 0 : 1)
