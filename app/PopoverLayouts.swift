@@ -29,9 +29,10 @@ struct GaugeRow: View {
                     Text("reset dans \(MenuBarDisplay.countdown(to: resetsAt))").font(.caption).foregroundColor(Color.secondaryText)
                 }
             }
-            Text(PaceText.summary(for: forecast, showsDailyBudget: showsDailyBudget))
-                .font(.caption)
-                .foregroundColor(Color.secondaryText)
+            let summary = PaceText.summary(for: forecast, showsDailyBudget: showsDailyBudget)
+            if !summary.isEmpty {
+                Text(summary).font(.caption).foregroundColor(Color.secondaryText)
+            }
         }
     }
 }

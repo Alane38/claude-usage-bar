@@ -5,6 +5,7 @@ extension UsageTone {
 }
 
 /// Barre de jauge : valeur actuelle, projection au reset (voile) et repère du rythme régulier (trait).
+/// Seule la piste a des bouts ronds : remplissage et voile sont plats et découpés dans la piste.
 struct GaugeBar: View {
     let used: Double
     let projected: Double?
@@ -17,15 +18,19 @@ struct GaugeBar: View {
 
     var body: some View {
         GeometryReader { geo in
+            let total = geo.size.width
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.12))
-                if let projected, projected > used {
-                    Capsule().fill(tone.color.opacity(0.35)).frame(width: width(projected, geo.size.width))
+                ZStack(alignment: .leading) {
+                    Rectangle().fill(Color.primary.opacity(0.12))
+                    if let projected, projected > used {
+                        Rectangle().fill(tone.color.opacity(0.3)).frame(width: width(projected, total))
+                    }
+                    Rectangle().fill(tone.color).frame(width: used > 0 ? max(width(used, total), 3) : 0)
                 }
-                Capsule().fill(tone.color).frame(width: used > 0 ? max(width(used, geo.size.width), 6) : 0)
+                .clipShape(Capsule())
                 if let expected {
-                    Rectangle().fill(Color.primary).frame(width: 2, height: 14)
-                        .offset(x: width(expected, geo.size.width) - 1)
+                    Rectangle().fill(Color.primary.opacity(0.9)).frame(width: 2, height: 12)
+                        .offset(x: min(max(width(expected, total) - 1, 0), total - 2))
                 }
             }
         }
@@ -33,19 +38,16 @@ struct GaugeBar: View {
     }
 }
 
-/// Puce « En rythme », « Trop rapide »…
+/// Libellé de rythme : un point de couleur et le texte, sans pastille.
 struct PaceChip: View {
     let text: String
     let tone: UsageTone
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 11, weight: .medium))
-            .foregroundColor(tone.color)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 1)
-            .background(tone.color.opacity(0.15))
-            .cornerRadius(6)
+        HStack(spacing: 5) {
+            Circle().fill(tone.color).frame(width: 6, height: 6)
+            Text(text).font(.system(size: 11, weight: .medium)).foregroundColor(tone.color)
+        }
     }
 }
 
@@ -81,29 +83,4 @@ struct CardBackground: ViewModifier {
 
 extension View {
     func popoverCard() -> some View { modifier(CardBackground()) }
-}
-
-enum PaceText {
-    static func chip(for forecast: WindowForecast?, percent: Int) -> String? {
-        if percent >= 100 { return "Limite atteinte" }
-        switch forecast?.pace {
-        case .under:   return "En dessous du rythme"
-        case .onTrack: return "En rythme"
-        case .over:    return "Trop rapide"
-        case nil:      return nil
-        }
-    }
-
-    static func summary(for forecast: WindowForecast?, showsDailyBudget: Bool) -> String {
-        var parts: [String] = []
-        if let projected = forecast?.projectedPercent {
-            parts.append("≈ \(Int(projected.rounded())) % au reset")
-        } else if forecast != nil {
-            parts.append("estimation dans quelques minutes")
-        }
-        if showsDailyBudget, let perDay = forecast?.remainingPerDay, (forecast?.usedPercent ?? 0) < 100 {
-            parts.append("\(Int(perDay.rounded())) % par jour")
-        }
-        return parts.joined(separator: " · ")
-    }
 }

@@ -120,9 +120,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if let style = Snapshot.option("--menubar").flatMap(MenuBarStyle.init(rawValue:)) { self.usageManager.menuBarStyle = style }
                 if CommandLine.arguments.contains("--demo") {
                     // Données fictives pour l'aperçu uniquement : jamais écrites ailleurs que dans l'image.
-                    self.usageManager.sessionUsage = 8
-                    self.usageManager.weeklyUsage = 37
-                    self.usageManager.sessionResetsAt = Date().addingTimeInterval(2 * 3600 + 14 * 60)
+                    self.usageManager.sessionUsage = Snapshot.option("--session").flatMap(Int.init) ?? 8
+                    self.usageManager.weeklyUsage = Snapshot.option("--weekly").flatMap(Int.init) ?? 37
+                    self.usageManager.sessionResetsAt = Date().addingTimeInterval(Snapshot.option("--session-left").flatMap(Double.init) ?? (2 * 3600 + 14 * 60))
                     self.usageManager.weeklyResetsAt = Date().addingTimeInterval(2 * 86400 + 14 * 3600)
                     self.usageManager.lastUpdated = Date()
                     self.usageManager.hasFetchedData = true

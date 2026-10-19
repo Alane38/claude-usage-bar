@@ -204,4 +204,19 @@ check(CreditsSummary.make(console: nil, manual: nil) == nil, "crédits : rien à
 check(CreditsSummary.make(console: real, manual: manualCredits, now: realNow)?.title == "Crédits API · Max 5x", "crédits : la Console prime sur la saisie")
 check(CreditsSummary.money(87.5, "USD") == "87,5 $" && CreditsSummary.money(12, "EUR") == "12 EUR", "crédits : formatage des montants")
 
+// --- Libellés de rythme ---
+func forecastAt(_ used: Double, left: TimeInterval, length: TimeInterval) -> WindowForecast {
+    UsageForecast.forecast(usedPercent: used, resetsAt: now.addingTimeInterval(left), windowLength: length, now: now)
+}
+let calm = forecastAt(8, left: 3 * 3600, length: UsageForecast.sessionLength)
+check(PaceText.chip(for: calm, percent: 8) == "En dessous du rythme", "libellé : faible usage -> en dessous du rythme")
+check(PaceText.chip(for: forecastAt(40, left: 3 * 3600, length: UsageForecast.sessionLength), percent: 40) == "En rythme" || PaceText.chip(for: forecastAt(40, left: 3 * 3600, length: UsageForecast.sessionLength), percent: 40) == "Trop rapide", "libellé : 40 % après 2 h -> rythme ou trop rapide, jamais vide")
+check(PaceText.chip(for: forecastAt(74, left: 2.5 * 3600, length: UsageForecast.sessionLength), percent: 74) == "Trop rapide", "libellé : 74 % à mi-fenêtre -> trop rapide")
+check(PaceText.chip(for: forecastAt(74, left: 3600, length: UsageForecast.sessionLength), percent: 74) == "Usage élevé", "libellé : 74 % à 80 % de la fenêtre -> usage élevé")
+check(PaceText.chip(for: forecastAt(75, left: 3600, length: UsageForecast.weekLength), percent: 75) == "Usage élevé", "libellé : 75 % sans dérive -> usage élevé")
+check(PaceText.chip(for: calm, percent: 93) == "Limite proche" && PaceText.chip(for: calm, percent: 100) == "Limite atteinte", "libellé : 93 % et 100 %")
+check(PaceText.chip(for: nil, percent: 10) == nil && PaceText.chip(for: nil, percent: 80) == "Usage élevé", "libellé : sans prévision")
+check(PaceText.summary(for: calm, showsDailyBudget: false).hasPrefix("≈ "), "résumé : prévision au reset")
+check(PaceText.summary(for: forecastAt(5, left: UsageForecast.sessionLength - 60, length: UsageForecast.sessionLength), showsDailyBudget: false) == "", "résumé : vide trop tôt dans la fenêtre")
+
 exit(failures == 0 ? 0 : 1)
