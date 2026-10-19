@@ -128,6 +128,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 if let layout = Snapshot.option("--layout").flatMap(PopoverLayout.init(rawValue:)) { self.usageManager.popoverLayout = layout }
                 if let style = Snapshot.option("--menubar").flatMap(MenuBarStyle.init(rawValue:)) { self.usageManager.menuBarStyle = style }
+                if CommandLine.arguments.contains("--denied") {
+                    self.usageManager.browserAccessDenied = true
+                    self.usageManager.browserImportReport = "macOS bloque la lecture de ton navigateur : ClaudeUsageBar a besoin de l'Accès complet au disque."
+                }
                 if CommandLine.arguments.contains("--demo") {
                     // Données fictives pour l'aperçu uniquement : jamais écrites ailleurs que dans l'image.
                     self.usageManager.sessionUsage = Snapshot.option("--session").flatMap(Int.init) ?? 8
@@ -155,7 +159,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     }.padding(16), to: snapshotPath, size: NSSize(width: 320, height: 170))
                 } else if CommandLine.arguments.contains("--settings") {
                     Snapshot.write(view: SettingsView(usageManager: self.usageManager, statusManager: self.statusManager),
-                                   to: snapshotPath, size: NSSize(width: 560, height: 560))
+                                   to: snapshotPath, size: NSSize(width: 560, height: Snapshot.option("--height").flatMap(Double.init).map { CGFloat($0) } ?? 560))
                 } else {
                     Snapshot.write(view: PopoverView(usageManager: self.usageManager, statusManager: self.statusManager),
                                    to: snapshotPath, size: NSSize(width: 360, height: 640))
@@ -511,6 +515,8 @@ class UsageManager: ObservableObject {
     @Published var consoleUpdatedAt: Date?
     @Published var consoleStatus: String = ""
     @Published var browserImportReport: String = ""
+    @Published var browserAccessDenied = false
+    @Published var legacyImportReport = ""
     @Published var usageSource: String = ""
     /// Vrai quand l'API a refusé : rafraîchissement ralenti à 5 min jusqu'au prochain succès.
     @Published var isRefreshSlowed: Bool = false

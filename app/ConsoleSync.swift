@@ -105,9 +105,10 @@ extension UsageManager {
             saveConsoleCookie(header)
             imported.append("Console")
         }
+        browserAccessDenied = imported.isEmpty && FirefoxCookies.accessDenied()
         if imported.isEmpty {
-            browserImportReport = FirefoxCookies.accessDenied()
-                ? "Accès refusé par macOS : autorise ClaudeUsageBar dans Réglages Système > Confidentialité > Accès complet au disque."
+            browserImportReport = browserAccessDenied
+                ? "macOS bloque la lecture de ton navigateur : ClaudeUsageBar a besoin de l'Accès complet au disque."
                 : "Aucune session trouvée dans Zen/Firefox : connecte-toi à claude.ai et à platform.claude.com dans ce navigateur."
         } else {
             browserImportReport = "Importé : " + imported.joined(separator: ", ")
@@ -164,7 +165,7 @@ extension UsageManager {
         var imported: [String] = []
         if let value = legacy.read(account: AppSecrets.claudeAccount) { saveSessionCookie(value); imported.append("claude.ai") }
         if let value = legacy.read(account: AppSecrets.consoleAccount) { saveConsoleCookie(value); imported.append("Console") }
-        browserImportReport = imported.isEmpty ? "Rien trouvé dans l'ancien trousseau." : "Importé depuis le trousseau : " + imported.joined(separator: ", ")
+        legacyImportReport = imported.isEmpty ? "Rien trouvé dans l'ancien trousseau." : "Importé depuis le trousseau : " + imported.joined(separator: ", ")
         if !imported.isEmpty { fetchUsage() }
     }
     #endif

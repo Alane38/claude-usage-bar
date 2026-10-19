@@ -393,4 +393,7 @@ let empty = ForecastExport.make(now: exportNow, sessionPercent: nil, sessionRese
                                 weeklyPercent: nil, weeklyResetsAt: nil, weeklyForecast: nil, weeklyRecent: nil, usedToday: nil, credits: nil)
 check(empty.line.isEmpty && empty.session == nil, "export : sans données, ligne vide")
 
+// --- Lien vers les réglages macOS ---
+check(SystemSettings.fullDiskAccessURL.scheme == "x-apple.systempreferences" && SystemSettings.fullDiskAccessURL.absoluteString.hasSuffix("Privacy_AllFiles"), "réglages macOS : lien vers l'Accès complet au disque")
+
 exit(failures == 0 ? 0 : 1)

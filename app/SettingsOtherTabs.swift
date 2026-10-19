@@ -22,8 +22,8 @@ struct ClaudeSessionSection: View {
             .cornerRadius(4)
         #if !RELEASE
         Button("Importer l'ancien trousseau (macOS demandera ton mot de passe une fois)") { usageManager.importLegacyKeychain() }
-        if !usageManager.browserImportReport.isEmpty {
-            Text(usageManager.browserImportReport).font(.caption).foregroundColor(.secondary)
+        if !usageManager.legacyImportReport.isEmpty {
+            Text(usageManager.legacyImportReport).font(.caption).foregroundColor(.secondary)
         }
         #endif
         HStack {
@@ -45,8 +45,8 @@ struct ConnectionsTab: View {
 
     var body: some View {
         Form {
+            Section("Import depuis le navigateur et Console") { ConnectionsView(usageManager: usageManager) }
             Section("claude.ai") { ClaudeSessionSection(usageManager: usageManager) }
-            Section("Console et import") { ConnectionsView(usageManager: usageManager) }
         }
         .formStyle(.grouped)
     }

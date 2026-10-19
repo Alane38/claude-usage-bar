@@ -28,19 +28,26 @@ struct SettingsView: View {
     @ObservedObject var usageManager: UsageManager
     @ObservedObject var statusManager: StatusManager
 
+    @State private var tab = Snapshot.option("--tab") ?? "display"
+
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             DisplayTab(usageManager: usageManager)
                 .tabItem { Label("Affichage", systemImage: "paintbrush") }
+                .tag("display")
             ConnectionsTab(usageManager: usageManager)
                 .tabItem { Label("Connexions", systemImage: "link") }
+                .tag("connections")
             CreditsTab(usageManager: usageManager)
                 .tabItem { Label("Crédits", systemImage: "creditcard") }
+                .tag("credits")
             AlertsTab(usageManager: usageManager, statusManager: statusManager)
                 .tabItem { Label("Alertes", systemImage: "bell") }
+                .tag("alerts")
             GeneralTab(usageManager: usageManager)
                 .tabItem { Label("Général", systemImage: "gearshape") }
+                .tag("general")
         }
-        .frame(width: 560, height: 560)
+        .frame(width: 560, height: Snapshot.option("--height").flatMap(Double.init).map { CGFloat($0) } ?? 560)
     }
 }

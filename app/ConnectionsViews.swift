@@ -43,6 +43,7 @@ struct ConnectionsView: View {
                     .foregroundColor(Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if usageManager.browserAccessDenied { accessHelp }
 
             Button(showingConsolePaste ? "Annuler" : "Coller le cookie de la Console") {
                 showingConsolePaste.toggle()
@@ -51,6 +52,25 @@ struct ConnectionsView: View {
             .font(.caption)
             if showingConsolePaste { consolePasteSection }
         }
+    }
+
+    /// Les trois gestes qui restent à faire pour l'Accès complet au disque, un bouton chacun.
+    private var accessHelp: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button("1. Ouvrir l'Accès complet au disque") { SystemSettings.openFullDiskAccess() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            Text("Active ClaudeUsageBar dans la liste. S'il n'y est pas, glisse-le depuis le Finder.")
+                .font(.caption2)
+                .foregroundColor(Color.secondaryText)
+            Button("2. Afficher l'app dans le Finder") { SystemSettings.revealAppInFinder() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            Button("3. Relancer l'app, puis importer à nouveau") { SystemSettings.relaunchApp() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+        }
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder
