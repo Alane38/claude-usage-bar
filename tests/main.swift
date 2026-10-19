@@ -440,4 +440,62 @@ let hoverPoints = [(time: at(0), percent: 10.0), (time: at(5), percent: 12.0), (
 check(UsageAnalytics.nearestIndex(in: hoverPoints, to: at(6)) == 1 && UsageAnalytics.nearestIndex(in: hoverPoints, to: at(100)) == 2 && UsageAnalytics.nearestIndex(in: hoverPoints, to: at(-50)) == 0, "survol : relevé le plus proche")
 check(UsageAnalytics.nearestIndex(in: [(time: Date, percent: Double)](), to: at(0)) == nil, "survol : sans relevé -> nil")
 
+// MARK: - Vérification des versions
+func releaseJSON(tag: String, url: String = "https://github.com/Alane38/claude-usage-bar/releases/tag/v1.8.1", extra: String = "") -> Data {
+    Data("{\"tag_name\":\"\(tag)\",\"html_url\":\"\(url)\"\(extra)}".utf8)
+}
+check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1"))?.version == "1.8.1", "mise à jour : lit tag_name sans le v")
+check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1", extra: ",\"draft\":true")) == nil, "mise à jour : ignore un brouillon")
+check(UpdateChecker.parse(releaseJSON(tag: "v1.9.0", extra: ",\"prerelease\":true")) == nil, "mise à jour : ignore une préversion")
+check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1", url: "https://evil.example/x")) == nil, "mise à jour : lien hors github.com refusé")
+check(UpdateChecker.parse(releaseJSON(tag: "latest")) == nil && UpdateChecker.parse(Data("{\"message\":\"Not Found\"}".utf8)) == nil, "mise à jour : 404 et tag illisible -> nil")
+check(UpdateChecker.isNewer("1.8.1", than: "1.8.0") && UpdateChecker.isNewer("1.10.0", than: "1.9.0") && UpdateChecker.isNewer("2.0", than: "1.99.9"), "version : plus récente")
+check(!UpdateChecker.isNewer("1.8.0", than: "1.8.0") && !UpdateChecker.isNewer("1.7.9", than: "1.8.0") && !UpdateChecker.isNewer("abc", than: "1.8.0"), "version : égale, plus ancienne ou illisible")
+check(UpdateChecker.isNewer("v1.8.1", than: "1.8.0") && !UpdateChecker.isNewer("1.8", than: "1.8.0"), "version : préfixe v et longueurs différentes")
+check(UpdateChecker.shouldCheck(lastCheck: nil) && !UpdateChecker.shouldCheck(lastCheck: Date().addingTimeInterval(-3600)) && UpdateChecker.shouldCheck(lastCheck: Date().addingTimeInterval(-7 * 3600)), "vérification : toutes les 6 h")
+
+// MARK: - Budget du jour
+var paris = Calendar(identifier: .gregorian)
+paris.timeZone = TimeZone(identifier: "Europe/Paris")!
+let noon = paris.date(from: DateComponents(year: 2026, month: 10, day: 19, hour: 12))!
+let resetIn3Days = noon.addingTimeInterval(3 * 86400 - 12 * 3600)   // jeudi 22 à minuit : 3 jours pleins depuis minuit
+let budget = DayBudget.make(weeklyUsed: 40, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris)
+check(budget != nil && abs(budget!.allowed - 70.0 / 3) < 0.01 && budget!.used == 10, "budget du jour : (100 − usage de minuit) ÷ 3 jours")
+check(budget?.level == .ok, "budget du jour : 10 sur 23,3 -> ok")
+check(DayBudget(allowed: 24, used: 20).level == .close && DayBudget(allowed: 24, used: 24).level == .close, "budget du jour : de 80 à 100 % -> presque atteint")
+check(DayBudget(allowed: 24, used: 31).level == .over && DayBudget(allowed: 24, used: 31).overBy == 7, "budget du jour : 31 sur 24 -> dépassé de 7")
+check(DayBudget.make(weeklyUsed: 40, usedToday: nil, now: noon, resetsAt: resetIn3Days, calendar: paris) == nil, "budget du jour : sans historique -> nil")
+check(DayBudget.make(weeklyUsed: 100, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris) == nil, "budget du jour : limite atteinte -> nil")
+check(DayBudget.make(weeklyUsed: 40, usedToday: 10, now: noon, resetsAt: noon.addingTimeInterval(-60), calendar: paris) == nil, "budget du jour : reset passé -> nil")
+let lastDay = DayBudget.make(weeklyUsed: 50, usedToday: 5, now: noon, resetsAt: noon.addingTimeInterval(6 * 3600), calendar: paris)
+check(lastDay != nil && abs(lastDay!.allowed - 55) < 0.01, "budget du jour : dernier jour = tout ce qui reste (reset avant minuit)")
+let later = DayBudget.make(weeklyUsed: 50, usedToday: 10, now: noon.addingTimeInterval(5 * 3600), resetsAt: resetIn3Days, calendar: paris)
+let earlier = DayBudget.make(weeklyUsed: 45, usedToday: 5, now: noon, resetsAt: resetIn3Days, calendar: paris)
+check(later != nil && earlier != nil && abs(later!.allowed - earlier!.allowed) < 0.01, "budget du jour : ne rétrécit pas quand on consomme")
+check(DayBudgetText.line(DayBudget(allowed: 24, used: 9)) == "Aujourd'hui : 9 % sur 24 % conseillés", "texte : dans le budget")
+check(DayBudgetText.line(DayBudget(allowed: 24, used: 31)).hasSuffix("dépassé de 7 %") && DayBudgetText.consequence(DayBudget(allowed: 24, used: 9)) == nil, "texte : dépassement et conséquence")
+
+// MARK: - Planning depuis minuit
+let midnightPlan = WeekPlan.makeFromMidnight(used: 40, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris)
+check(midnightPlan != nil && midnightPlan!.usedBeforeToday == 30 && midnightPlan!.segments.count == 3, "planning minuit : 30 % avant aujourd'hui, 3 jours")
+check(midnightPlan != nil && abs(midnightPlan!.segments[0].percent - 70.0 / 3) < 0.01 && midnightPlan!.segments[0].consumed == 10, "planning minuit : bloc du jour = budget complet, 10 consommés")
+check(midnightPlan != nil && abs(midnightPlan!.usedBeforeToday + midnightPlan!.segments.reduce(0) { $0 + $1.percent } - 100) < 0.01, "planning minuit : le total fait 100 %")
+check(midnightPlan?.segments.dropFirst().allSatisfy { $0.consumed == nil } == true, "planning minuit : seul le jour a une jauge")
+check(DayBudget.make(weeklyUsed: 40, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris)?.allowed == midnightPlan?.segments[0].percent, "planning minuit : même budget que DayBudget")
+check(WeekPlan.makeFromMidnight(used: 100, usedToday: 10, now: noon, resetsAt: resetIn3Days, calendar: paris) == nil, "planning minuit : limite atteinte -> nil")
+check(WeekPlan.makeFromMidnight(used: 40, usedToday: 10, now: noon, resetsAt: noon.addingTimeInterval(-1), calendar: paris) == nil, "planning minuit : reset passé -> nil")
+
+// MARK: - Organisations
+let orgJSON = Data(#"[{"uuid":"aaa-1","name":"Alane","capabilities":["chat","claude_pro"]},{"uuid":"bbb-2","name":"","capabilities":["api"]},{"name":"sans id"},{"uuid":"ccc-3","name":"Équipe","capabilities":["chat"]}]"#.utf8)
+let orgs = OrganizationList.parse(orgJSON)
+check(orgs.count == 3 && orgs[0].name == "Alane" && orgs[0].hasChat, "organisations : lit uuid, nom, capacité chat")
+check(orgs[1].name == "Organisation bbb-2" && !orgs[1].hasChat, "organisations : nom absent -> identifiant court")
+check(OrganizationList.followable(orgs).map(\.id) == ["aaa-1", "ccc-3"], "organisations : seules celles avec chat sont proposées")
+check(OrganizationList.followable([orgs[1]]).count == 1, "organisations : sans aucune capacité chat -> toutes")
+check(OrganizationList.parse(Data("{\"error\":1}".utf8)).isEmpty && OrganizationList.parse(Data()).isEmpty, "organisations : réponse inattendue -> vide")
+check(OrganizationList.resolve(selected: "ccc-3", available: orgs, cookieOrg: "aaa-1") == "ccc-3", "organisation : le choix prime")
+check(OrganizationList.resolve(selected: "disparue", available: orgs, cookieOrg: "aaa-1") == "aaa-1", "organisation : choix disparu -> cookie")
+check(OrganizationList.resolve(selected: nil, available: orgs, cookieOrg: nil) == nil, "organisation : rien -> nil")
+check(OrganizationList.resolve(selected: "ccc-3", available: [], cookieOrg: "aaa-1") == "ccc-3", "organisation : liste pas encore chargée -> le choix est gardé")
+
 exit(failures == 0 ? 0 : 1)

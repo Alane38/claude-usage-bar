@@ -49,6 +49,7 @@ struct PopoverView: View {
                 Divider()
                 StatusSection(statusManager: statusManager)
             }
+            if let update = usageManager.availableUpdate { updateBanner(update) }
             if usageManager.hasFetchedData { footer }
         }
     }
@@ -81,6 +82,18 @@ struct PopoverView: View {
                 .foregroundColor(Color.secondaryText)
             Button("Ouvrir les réglages") { (NSApp.delegate as? AppDelegate)?.openSettings() }
                 .controlSize(.small)
+        }
+        .popoverCard()
+    }
+
+    private func updateBanner(_ update: ReleaseInfo) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Version \(update.version) disponible").font(.system(size: 13, weight: .medium))
+                Text("Tu as la \(usageManager.currentVersion).").font(.caption).foregroundColor(Color.secondaryText)
+            }
+            Spacer()
+            Button("Voir") { NSWorkspace.shared.open(update.pageURL) }.controlSize(.small)
         }
         .popoverCard()
     }

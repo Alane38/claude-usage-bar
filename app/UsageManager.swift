@@ -75,6 +75,14 @@ class UsageManager: ObservableObject {
     @Published var isRefreshSlowed: Bool = false
     var refreshPolicy = RefreshPolicy()
     @Published var keychainIssue: String = ""
+    @Published var availableUpdate: ReleaseInfo?
+    @Published var updateCheckReport = ""
+    @Published var organizations: [Organization] = []
+    @Published var selectedOrganizationId: String?
+    var checksForUpdates = true
+    /// Aperçus uniquement (`--used-today`) : remplace la consommation du jour lue dans l'historique.
+    var usedTodayOverride: Double?
+    var lastUpdateCheck: Date?
     weak var delegate: AppDelegate?
     var lastNotifiedThreshold: Int = 0
 

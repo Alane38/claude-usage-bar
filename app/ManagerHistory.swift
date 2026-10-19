@@ -49,7 +49,10 @@ extension UsageManager {
     var weeklyRecentRate: Double? {
         UsageAnalytics.recentRate(historySamples, series: .weekly, lookback: 24 * 3600, minElapsed: 12 * 3600)
     }
-    var weeklyUsedToday: Double? { UsageAnalytics.usedToday(historySamples, series: .weekly) }
+    var weeklyUsedToday: Double? { usedTodayOverride ?? UsageAnalytics.usedToday(historySamples, series: .weekly) }
+    var dayBudget: DayBudget? {
+        DayBudget.make(weeklyUsed: Double(weeklyUsage), usedToday: weeklyUsedToday, now: Date(), resetsAt: weeklyResetsAt)
+    }
 
     var sessionRecentForecast: RecentForecast? {
         guard let rate = sessionRecentRate, let resetsAt = sessionResetsAt else { return nil }

@@ -2,6 +2,21 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.9.0 : 19 octobre 2026
+
+### Ajouté
+- **Budget du jour** : « Aujourd'hui : 9 % sur 24 % conseillés », en gris dans le budget, en jaune au-delà de 80 %, en rouge avec « dépassé de N % » et « les jours suivants auront d'autant moins ». Le budget est calculé à minuit : il ne rétrécit pas quand on consomme, donc le dépassement reste visible.
+- **Planning de la semaine depuis minuit** : le bloc « auj. » est le budget complet de la journée, avec une jauge qui se remplit (« 9 / 22 % »), rouge quand il est dépassé. Le gris à gauche devient « avant auj. ».
+- **Prévenir des nouvelles versions** : lecture de la dernière release GitHub toutes les 6 h (requête publique, aucune donnée envoyée), bandeau « Version X disponible · Voir » dans le popover et une notification par version. Désactivable, avec « Rechercher maintenant ».
+- **Organisation suivie** : si le compte claude.ai a plusieurs organisations (personnel, équipe), un sélecteur dans Réglages > Connexions choisit laquelle suivre (par défaut, la dernière utilisée sur claude.ai).
+- **CI GitHub** : tests et compilations (développement et release) à chaque push. **Release GitHub** avec l'application zippée et sa somme SHA-256 à chaque tag `vX.Y.Z` (non notarisée : clic droit > Ouvrir).
+- **Régression visuelle** : `scripts/visual-check.sh` compare 15 écrans de démonstration (clair et sombre) à des références (`tests/visual/ref`), `--update` après un changement voulu.
+
+### Modifié
+- `scripts/test.sh` s'arrête si la compilation des tests échoue (avant, il pouvait exécuter un ancien binaire).
+- Carte « Budget d'aujourd'hui » : le chiffre est le budget conseillé du jour, plus la moyenne par jour.
+- Deux fichiers redécoupés pour rester sous 200 lignes (`SettingsGeneralTab`, `UsageManager+DisplaySettings`).
+
 ## 1.8.0 : 19 octobre 2026
 
 ### Modifié

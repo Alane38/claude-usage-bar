@@ -145,17 +145,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.sessionUsage = Snapshot.option("--session").flatMap(Int.init) ?? 8
                     self.usageManager.weeklyUsage = Snapshot.option("--weekly").flatMap(Int.init) ?? 37
                     self.usageManager.sessionResetsAt = Date().addingTimeInterval(Snapshot.option("--session-left").flatMap(Double.init) ?? (2 * 3600 + 14 * 60))
-                    self.usageManager.weeklyResetsAt = Date().addingTimeInterval(2 * 86400 + 14 * 3600)
+                    // Ancré sur minuit : le budget du jour ne dépend pas de l'heure à laquelle la capture est prise.
+                    self.usageManager.weeklyResetsAt = Calendar.current.startOfDay(for: Date()).addingTimeInterval(2 * 86400 + 14 * 3600)
                     self.usageManager.lastUpdated = Date()
                     self.usageManager.hasFetchedData = true
                     self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage),
                                                                           hours: Snapshot.option("--history-hours").flatMap(Double.init) ?? 24)
+                    self.usageManager.usedTodayOverride = Snapshot.option("--used-today").flatMap(Double.init)
                     self.usageManager.updatePercentages()
                     let deadline = Date().addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,
                                                                       periodResetsAt: deadline, nextExpiry: deadline,
                                                                       promoGranted: 100, promoName: "API credit (Max 5x)")
                     self.usageManager.consoleUpdatedAt = Date().addingTimeInterval(-120)
+                }
+                if CommandLine.arguments.contains("--demo-update") {
+                    self.usageManager.availableUpdate = ReleaseInfo(version: "9.9.9", pageURL: URL(string: "https://github.com/Alane38/claude-usage-bar/releases")!)
                 }
                 if CommandLine.arguments.contains("--menubar-styles") {
                     Snapshot.write(view: VStack(alignment: .leading, spacing: 10) {

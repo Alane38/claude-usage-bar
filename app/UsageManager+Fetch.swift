@@ -3,16 +3,10 @@ import AppKit
 
 extension UsageManager {
     func fetchOrganizationId(completion: @escaping (String?) -> Void) {
-        // Get org ID from the lastActiveOrg cookie value
-        let cookieParts = sessionCookie.components(separatedBy: ";")
-        for part in cookieParts {
-            let trimmed = part.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("lastActiveOrg=") {
-                let orgId = trimmed.replacingOccurrences(of: "lastActiveOrg=", with: "")
-                NSLog("📋 Found org ID in cookie")
-                completion(orgId)
-                return
-            }
+        // Choix de l'utilisateur, sinon la valeur du cookie lastActiveOrg.
+        if let orgId = effectiveOrganizationId() {
+            completion(orgId)
+            return
         }
 
         // If not in cookie, fetch from bootstrap
@@ -77,6 +71,8 @@ extension UsageManager {
         // Sans cookie, le statusline suffit ; avec cookie, il sert de repli si le réseau échoue.
         let hasStatusline = applyStatuslineUsage()
         fetchConsoleBalance()
+        checkForUpdateIfDue()
+        if organizations.isEmpty { fetchOrganizations() }
         guard !sessionCookie.isEmpty else {
             if !hasStatusline {
                 DispatchQueue.main.async {

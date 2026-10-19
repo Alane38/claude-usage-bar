@@ -14,6 +14,14 @@ struct ClaudeSessionSection: View {
     var body: some View {
         LabeledContent("Stockage des secrets", value: AppSecrets.storageLabel)
         LabeledContent("Session claude.ai", value: state)
+        if usageManager.organizations.count > 1 {
+            Picker("Organisation suivie", selection: Binding(
+                get: { usageManager.selectedOrganizationId ?? "" },
+                set: { usageManager.selectOrganization($0.isEmpty ? nil : $0) })) {
+                Text("Automatique (dernière utilisée sur claude.ai)").tag("")
+                ForEach(usageManager.organizations) { Text($0.name).tag($0.id) }
+            }
+        }
         Text("claude.ai > Réglages > Usage, puis F12 > Réseau > requête « usage » > En-têtes de requête > Cookie. Colle l'en-tête complet.")
             .font(.caption)
             .foregroundColor(.secondary)
@@ -128,59 +136,6 @@ struct AlertsTab: View {
                 ForEach(statusManager.allComponents) { component in
                     Toggle(component.name, isOn: Binding(get: { statusManager.isTracked(component.id) },
                                                          set: { _ in statusManager.toggleComponent(component.id) }))
-                }
-            }
-        }
-        .formStyle(.grouped)
-    }
-}
-
-struct GeneralTab: View {
-    @ObservedObject var usageManager: UsageManager
-
-    private var versionLabel: String {
-        let info = Bundle.main.infoDictionary
-        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
-        let build = info?["CFBundleVersion"] as? String ?? "?"
-        return "\(version) (build \(build))"
-    }
-
-    var body: some View {
-        Form {
-            Section("À propos") {
-                LabeledContent("Version", value: versionLabel)
-                LabeledContent("Stockage des secrets", value: AppSecrets.storageLabel)
-                Button("Voir le code et le journal des changements") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/Alane38/claude-usage-bar")!)
-                }
-                .buttonStyle(.link)
-            }
-            Section("Démarrage") {
-                Toggle("Ouvrir à la connexion", isOn: Binding(
-                    get: { usageManager.openAtLogin },
-                    set: { usageManager.openAtLogin = $0; usageManager.applyLoginItem($0); usageManager.saveSettings() }))
-            }
-            Section("Statusline de Claude Code") {
-                Toggle("Exporter la prévision", isOn: Binding(
-                    get: { usageManager.exportsForecast },
-                    set: { usageManager.exportsForecast = $0; usageManager.saveDisplaySettings() }))
-                Text("Écrit ~/Library/Application Support/ClaudeUsageBar/forecast.json chaque minute. Ton statusline peut en afficher la ligne de prévision.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            Section("Raccourci clavier") {
-                Toggle("Afficher le popover avec ⌘U", isOn: Binding(
-                    get: { usageManager.shortcutEnabled },
-                    set: {
-                        usageManager.shortcutEnabled = $0
-                        usageManager.saveSettings()
-                        (NSApp.delegate as? AppDelegate)?.setShortcutEnabled($0)
-                    }))
-                Text("À désactiver s'il entre en conflit avec une autre application.").font(.caption).foregroundColor(.secondary)
-                if usageManager.shortcutEnabled && !usageManager.isAccessibilityEnabled {
-                    Button("Autoriser l'Accessibilité") {
-                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
-                    }
                 }
             }
         }

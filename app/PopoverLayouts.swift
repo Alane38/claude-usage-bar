@@ -13,6 +13,7 @@ struct GaugeRow: View {
     let resetsAt: Date?
     let showsDailyBudget: Bool
     var recent: RecentForecast?
+    var dayBudget: DayBudget?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -33,10 +34,11 @@ struct GaugeRow: View {
                 }
             }
             .padding(.top, 2)
-            let summary = PaceText.summary(for: forecast, showsDailyBudget: showsDailyBudget)
+            let summary = PaceText.summary(for: forecast, showsDailyBudget: showsDailyBudget && dayBudget == nil)
             if !summary.isEmpty {
                 Text(summary).font(.caption).foregroundColor(Color.secondaryText)
             }
+            if let dayBudget { DayBudgetRow(budget: dayBudget) }
             if let line = PaceText.recentLine(recent) {
                 Text(line).font(.caption).foregroundColor(recent?.exhaustsAt == nil ? Color.secondaryText : UsageTone.warning.color)
             }
@@ -71,7 +73,7 @@ struct GaugesLayout: View {
                      recent: usageManager.sessionRecentForecast)
             GaugeRow(title: "Semaine · 7 j", percent: usageManager.weeklyUsage, forecast: usageManager.weeklyForecast,
                      tone: usageManager.weeklyTone, resetsAt: usageManager.weeklyResetsAt, showsDailyBudget: true,
-                     recent: usageManager.weeklyRecentForecast)
+                     recent: usageManager.weeklyRecentForecast, dayBudget: usageManager.dayBudget)
             if let credits = usageManager.creditsSummary {
                 Divider()
                 CreditsGaugeRow(summary: credits)
@@ -105,17 +107,19 @@ struct RingCard: View {
 struct BudgetHero: View {
     let forecast: WindowForecast?
     let resetsAt: Date?
+    var dayBudget: DayBudget?
 
     private var isMaxed: Bool { (forecast?.usedPercent ?? 0) >= 100 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Budget d'aujourd'hui").font(.caption).foregroundColor(Color.secondaryText)
-            Text(isMaxed ? "Limite atteinte" : "\(Int((forecast?.remainingPerDay ?? 0).rounded())) %")
+            Text(isMaxed ? "Limite atteinte" : "\(Int((dayBudget?.allowed ?? forecast?.remainingPerDay ?? 0).rounded())) %")
                 .font(.system(size: 28, weight: .medium))
-            Text(resetsAt.map { "par jour jusqu'au reset, dans \(MenuBarDisplay.countdown(to: $0))" } ?? "")
+            Text(resetsAt.map { (dayBudget == nil ? "par jour jusqu'au reset, dans " : "à ne pas dépasser aujourd'hui · reset dans ") + MenuBarDisplay.countdown(to: $0) } ?? "")
                 .font(.caption)
                 .foregroundColor(Color.secondaryText)
+            if let dayBudget { DayBudgetRow(budget: dayBudget, showsBar: true).padding(.top, 4) }
         }
         .popoverCard()
     }
@@ -147,7 +151,7 @@ struct CardsLayout: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            BudgetHero(forecast: usageManager.weeklyForecast, resetsAt: usageManager.weeklyResetsAt)
+            BudgetHero(forecast: usageManager.weeklyForecast, resetsAt: usageManager.weeklyResetsAt, dayBudget: usageManager.dayBudget)
             HStack(spacing: 8) {
                 RingCard(title: "Session", caption: resetCaption(usageManager.sessionResetsAt, percent: usageManager.sessionUsage),
                          percent: Double(usageManager.sessionUsage), tone: usageManager.sessionTone,
