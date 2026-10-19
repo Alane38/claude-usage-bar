@@ -101,8 +101,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         usageManager.fetchUsage()
         statusManager.fetch()
 
-        // Usage + Anthropic status are time-sensitive — poll every 5 min.
-        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in
+        // Limites, crédits Console et statut Anthropic : une fois par minute (5 min dans l'original).
+        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
             self.usageManager.fetchUsage()
             self.statusManager.fetch()
         }
