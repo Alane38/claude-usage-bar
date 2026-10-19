@@ -42,5 +42,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "La release $TAG existe déjà : rien à publier."; exit 0; fi
           gh release create "$TAG" "ClaudeUsageBar-$VERSION-arm64.zip" "ClaudeUsageBar-$VERSION-arm64.zip.sha256" \
             --title "ClaudeUsageBar $VERSION" --notes-file notes.md
