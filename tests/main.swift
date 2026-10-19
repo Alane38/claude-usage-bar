@@ -216,6 +216,8 @@ check(PaceText.chip(for: forecastAt(74, left: 3600, length: UsageForecast.sessio
 check(PaceText.chip(for: forecastAt(75, left: 3600, length: UsageForecast.weekLength), percent: 75) == "Usage élevé", "libellé : 75 % sans dérive -> usage élevé")
 check(PaceText.chip(for: calm, percent: 93) == "Limite proche" && PaceText.chip(for: calm, percent: 100) == "Limite atteinte", "libellé : 93 % et 100 %")
 check(PaceText.chip(for: nil, percent: 10) == nil && PaceText.chip(for: nil, percent: 80) == "Usage élevé", "libellé : sans prévision")
+check(PaceText.compactChip(for: calm, percent: 8) == "Sous le rythme" && PaceText.compactChip(for: calm, percent: 93) == "Limite proche", "libellé court : raccourci seulement le plus long")
+check(PaceText.idleSession(percent: 0, resetsAt: nil) == "Aucune session en cours" && PaceText.idleSession(percent: 0, resetsAt: Date()) == nil && PaceText.idleSession(percent: 5, resetsAt: nil) == nil, "session inactive : 0 % sans reset seulement")
 check(PaceText.summary(for: calm, showsDailyBudget: false).hasPrefix("≈ "), "résumé : prévision au reset")
 check(PaceText.summary(for: forecastAt(5, left: UsageForecast.sessionLength - 60, length: UsageForecast.sessionLength), showsDailyBudget: false) == "", "résumé : vide trop tôt dans la fenêtre")
 

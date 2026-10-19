@@ -2,6 +2,19 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.7.0 : 19 octobre 2026
+
+### Modifié
+- **Mode clair lisible** : les couleurs d'état (vert, ambre, rouge) ont une version plus profonde sur fond clair (contraste d'au moins 4,5:1 pour le texte). Avant, le vert et le jaune étaient presque illisibles sur blanc, et le texte blanc du planning disparaissait sur fond pâle.
+- **Cartes : le rythme est dit en toutes lettres** (« Trop rapide », « Sous le rythme ») sous chaque anneau, au lieu de la seule couleur. Les deux cartes ont la même hauteur.
+- **Planning de la semaine** : bloc « utilisé » étiqueté, étiquettes des jours écartées quand elles se chevaucheraient (fin de semaine chargée), texte du bloc à encre normale.
+- **Courbe** : la valeur finale est posée sur une pastille et ne se superpose plus au tracé ; textes d'axe à 11 pt.
+- Session à 0 % sans fenêtre ouverte : « Aucune session en cours » au lieu d'un 0 % sans explication.
+
+### Ajouté
+- **VoiceOver et aide** sur les jauges et anneaux ; info-bulle de la jauge qui explique le trait (rythme régulier) et la zone claire (prévision).
+- Option de capture `--light` pour vérifier le rendu en mode clair.
+
 ## 1.6.6 : 19 octobre 2026
 
 ### Modifié

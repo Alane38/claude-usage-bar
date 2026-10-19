@@ -2,12 +2,22 @@ import AppKit
 
 /// Dessin des icônes de la barre de menu. Les couleurs de piste sont résolues au dessin (clair/sombre).
 enum MenuBarIcons {
+    /// Teintes vives sur fond sombre, plus profondes sur fond clair (contraste de 4,5:1 minimum pour le texte et de 3:1 pour les tracés).
+    /// Résolues au dessin : la même couleur sert au popover et à la barre de menu.
     static func color(for tone: UsageTone) -> NSColor {
         switch tone {
-        case .ok:      return NSColor(red: 0.13, green: 0.77, blue: 0.37, alpha: 1)
-        case .warning: return NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1)
-        case .danger:  return NSColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1)
+        case .ok:      return adaptive(dark: (0.13, 0.77, 0.37), light: (0.07, 0.50, 0.22))
+        case .warning: return adaptive(dark: (1.0, 0.8, 0.0), light: (0.62, 0.39, 0.0))
+        case .danger:  return adaptive(dark: (1.0, 0.23, 0.19), light: (0.80, 0.10, 0.08))
         case .stale:   return NSColor.secondaryLabelColor
+        }
+    }
+
+    private static func adaptive(dark: (CGFloat, CGFloat, CGFloat), light: (CGFloat, CGFloat, CGFloat)) -> NSColor {
+        NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let rgb = isDark ? dark : light
+            return NSColor(red: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
         }
     }
 

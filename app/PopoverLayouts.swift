@@ -28,6 +28,8 @@ struct GaugeRow: View {
                 Spacer()
                 if let resetsAt {
                     Text("reset dans \(MenuBarDisplay.countdown(to: resetsAt))").font(.caption).foregroundColor(Color.secondaryText)
+                } else if let idle = PaceText.idleSession(percent: percent, resetsAt: resetsAt) {
+                    Text(idle).font(.caption).foregroundColor(Color.secondaryText)
                 }
             }
             .padding(.top, 2)
@@ -83,6 +85,8 @@ struct RingCard: View {
     let caption: String
     let percent: Double
     let tone: UsageTone
+    /// Libellé du rythme : la couleur de l'anneau ne doit jamais être seule à dire l'état.
+    var pace: String?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -90,9 +94,11 @@ struct RingCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.system(size: 13, weight: .medium))
                 Text(caption).font(.caption).foregroundColor(Color.secondaryText).lineLimit(2)
+                if let pace { PaceChip(text: pace, tone: tone).padding(.top, 2) }
             }
         }
         .popoverCard()
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -135,19 +141,22 @@ struct CreditsCard: View {
 struct CardsLayout: View {
     @ObservedObject var usageManager: UsageManager
 
-    private func resetCaption(_ date: Date?) -> String {
-        date.map { "reset dans \(MenuBarDisplay.countdown(to: $0))" } ?? ""
+    private func resetCaption(_ date: Date?, percent: Int) -> String {
+        date.map { "reset \(MenuBarDisplay.countdown(to: $0))" } ?? (PaceText.idleSession(percent: percent, resetsAt: date) ?? "")
     }
 
     var body: some View {
         VStack(spacing: 8) {
             BudgetHero(forecast: usageManager.weeklyForecast, resetsAt: usageManager.weeklyResetsAt)
             HStack(spacing: 8) {
-                RingCard(title: "Session", caption: resetCaption(usageManager.sessionResetsAt),
-                         percent: Double(usageManager.sessionUsage), tone: usageManager.sessionTone)
-                RingCard(title: "Semaine", caption: resetCaption(usageManager.weeklyResetsAt),
-                         percent: Double(usageManager.weeklyUsage), tone: usageManager.weeklyTone)
+                RingCard(title: "Session", caption: resetCaption(usageManager.sessionResetsAt, percent: usageManager.sessionUsage),
+                         percent: Double(usageManager.sessionUsage), tone: usageManager.sessionTone,
+                         pace: PaceText.compactChip(for: usageManager.sessionForecast, percent: usageManager.sessionUsage))
+                RingCard(title: "Semaine", caption: resetCaption(usageManager.weeklyResetsAt, percent: usageManager.weeklyUsage),
+                         percent: Double(usageManager.weeklyUsage), tone: usageManager.weeklyTone,
+                         pace: PaceText.compactChip(for: usageManager.weeklyForecast, percent: usageManager.weeklyUsage))
             }
+            .fixedSize(horizontal: false, vertical: true)
             if let credits = usageManager.creditsSummary { CreditsCard(summary: credits) }
         }
     }

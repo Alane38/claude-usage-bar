@@ -30,11 +30,12 @@ enum Snapshot {
     }
 
     static func write(view: some View, to path: String, size: NSSize) {
-        let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height).background(Color(white: 0.11)))
+        let isLight = CommandLine.arguments.contains("--light")
+        let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height).background(Color(white: isLight ? 0.96 : 0.11)))
         hosting.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.contentView = hosting
-        window.appearance = NSAppearance(named: .darkAqua)
+        window.appearance = NSAppearance(named: isLight ? .aqua : .darkAqua)
         hosting.layoutSubtreeIfNeeded()
         guard let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return }
         hosting.cacheDisplay(in: hosting.bounds, to: bitmap)

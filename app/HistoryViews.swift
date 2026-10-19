@@ -88,8 +88,12 @@ struct HistoryChart: View {
         let surface = Color(nsColor: .windowBackgroundColor)
         context.fill(Path(ellipseIn: CGRect(x: end.x - 6, y: end.y - 6, width: 12, height: 12)), with: .color(surface))
         context.fill(Path(ellipseIn: CGRect(x: end.x - 4, y: end.y - 4, width: 8, height: 8)), with: .color(color))
-        context.draw(Text("\(Int(last.percent.rounded())) %").font(.system(size: 11, weight: .medium)).foregroundColor(.primary),
-                     at: CGPoint(x: end.x - 9, y: max(end.y - 11, 6)), anchor: .trailing)
+        // Pastille de la couleur du fond derrière la valeur : elle reste lisible même quand la courbe passe dessous.
+        let labelCenter = CGPoint(x: end.x - 28, y: min(max(end.y - 14, 8), size.height - 8))
+        context.fill(Path(roundedRect: CGRect(x: labelCenter.x - 19, y: labelCenter.y - 8, width: 38, height: 16), cornerRadius: 4),
+                     with: .color(surface.opacity(0.9)))
+        context.draw(Text("\(Int(last.percent.rounded())) %").font(.system(size: 11, weight: .semibold)).foregroundColor(.primary),
+                     at: labelCenter)
         if let peak = points.max(by: { $0.percent < $1.percent }), peak.percent - last.percent >= 8 {
             let location = position(peak, in: size)
             context.draw(Text("pic \(Int(peak.percent.rounded())) %").font(.system(size: 10)).foregroundColor(.secondary),
@@ -150,7 +154,7 @@ struct HistoryDisclosure: View {
                         Spacer()
                         Text("maintenant")
                     }
-                    .font(.system(size: 10))
+                    .font(.system(size: 11))
                     .foregroundColor(Color.secondaryText)
                     if let today = PaceText.todayLine(usageManager.weeklyUsedToday) {
                         Text(today).font(.caption).foregroundColor(Color.secondaryText)

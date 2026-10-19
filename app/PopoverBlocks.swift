@@ -35,6 +35,16 @@ struct GaugeBar: View {
             }
         }
         .frame(height: 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+        .help("Trait : où tu en serais à rythme régulier. Zone claire : projection au reset.")
+    }
+
+    private var accessibilityText: String {
+        var text = "\(Int(used.rounded())) % utilisé"
+        if let projected { text += ", \(Int(projected.rounded())) % prévu au reset" }
+        if let expected { text += ", \(Int(expected.rounded())) % à rythme régulier" }
+        return text
     }
 }
 
@@ -67,6 +77,8 @@ struct RingView: View {
             Text("\(Int(percent.rounded())) %").font(.system(size: 12, weight: .medium))
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Int(percent.rounded())) % utilisé")
     }
 }
 

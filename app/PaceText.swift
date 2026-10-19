@@ -11,6 +11,16 @@ enum PaceText {
         return forecast.pace == .under ? "En dessous du rythme" : "En rythme"
     }
 
+    /// Version courte pour les cartes étroites : « En dessous du rythme » passerait sur deux lignes.
+    static func compactChip(for forecast: WindowForecast?, percent: Int) -> String? {
+        chip(for: forecast, percent: percent).map { $0 == "En dessous du rythme" ? "Sous le rythme" : $0 }
+    }
+
+    /// Session à 0 % sans heure de reset : aucune fenêtre de 5 h n'est ouverte (elle démarre au prochain message).
+    static func idleSession(percent: Int, resetsAt: Date?) -> String? {
+        percent == 0 && resetsAt == nil ? "Aucune session en cours" : nil
+    }
+
     static func summary(for forecast: WindowForecast?, showsDailyBudget: Bool) -> String {
         var parts: [String] = []
         if let projected = forecast?.projectedPercent {
