@@ -154,4 +154,22 @@ check(!StatuslineUsage.shouldReplace(displayedAt: now, hasDisplayedData: true, c
 check(StatuslineUsage.shouldReplace(displayedAt: now, hasDisplayedData: true, capturedAt: now.addingTimeInterval(60)), "refresh : statusline plus récent appliqué")
 check(StatuslineUsage.shouldReplace(displayedAt: now, hasDisplayedData: false, capturedAt: now.addingTimeInterval(-3600)), "démarrage : statusline appliqué faute de donnée")
 
+// --- Cadence de rafraîchissement ---
+var policy = RefreshPolicy()
+check(policy.interval == 60 && !policy.isSlowed, "cadence : 60 s au départ")
+policy.record(statusCode: 429)
+check(policy.interval == 300 && policy.isSlowed, "cadence : 429 -> 5 min")
+policy.record(statusCode: nil)
+check(policy.interval == 300, "cadence : réseau coupé ne change rien")
+policy.record(statusCode: 404)
+check(policy.interval == 300, "cadence : 404 ne change rien")
+policy.record(statusCode: 200)
+check(policy.interval == 60 && !policy.isSlowed, "cadence : succès -> retour à 60 s")
+for code in [401, 403, 500, 503] {
+    var p = RefreshPolicy(); p.record(statusCode: code)
+    check(p.isSlowed, "cadence : \(code) -> ralenti")
+}
+var untouched = RefreshPolicy(); untouched.record(statusCode: nil)
+check(!untouched.isSlowed, "cadence : pas de réponse au départ -> reste à 60 s")
+
 exit(failures == 0 ? 0 : 1)

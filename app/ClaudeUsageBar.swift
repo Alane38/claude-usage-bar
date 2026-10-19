@@ -101,11 +101,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         usageManager.fetchUsage()
         statusManager.fetch()
 
-        // Limites, crédits Console et statut Anthropic : une fois par minute (5 min dans l'original).
-        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
-            self.usageManager.fetchUsage()
-            self.statusManager.fetch()
-        }
+        // Limites, crédits Console et statut Anthropic : une fois par minute (5 min dans l'original),
+        // ralenti à 5 min tant que l'API refuse (voir RefreshPolicy).
+        scheduleRefresh()
 
         if CommandLine.arguments.contains("--diagnose") {
             print("diagnostic : cookie claude.ai en mémoire =", !usageManager.sessionCookie.isEmpty,
@@ -285,6 +283,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func quitApp() {
         NSApplication.shared.terminate(nil)
+    }
+
+    private func scheduleRefresh() {
+        Timer.scheduledTimer(withTimeInterval: usageManager.refreshPolicy.interval, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.usageManager.fetchUsage()
+            self.statusManager.fetch()
+            self.scheduleRefresh()
+        }
     }
 
     @objc func togglePopover() {
@@ -476,6 +483,9 @@ class UsageManager: ObservableObject {
     @Published var consoleStatus: String = ""
     @Published var browserImportReport: String = ""
     @Published var usageSource: String = ""
+    /// Vrai quand l'API a refusé : rafraîchissement ralenti à 5 min jusqu'au prochain succès.
+    @Published var isRefreshSlowed: Bool = false
+    var refreshPolicy = RefreshPolicy()
     @Published var keychainIssue: String = ""
     private weak var delegate: AppDelegate?
     private var lastNotifiedThreshold: Int = 0
@@ -701,6 +711,11 @@ class UsageManager: ObservableObject {
             NSLog("✅ Got org ID from bootstrap")
             completion(lastActiveOrgId)
         }.resume()
+    }
+
+    func noteFetchResult(statusCode: Int) {
+        refreshPolicy.record(statusCode: statusCode)
+        isRefreshSlowed = refreshPolicy.isSlowed
     }
 
     /// Applique les limites lues dans le statusline de Claude Code. Retourne false si la source est absente.
@@ -931,6 +946,7 @@ class UsageManager: ObservableObject {
                 }
 
                 NSLog("📡 Status: \(httpResponse.statusCode)")
+                self?.noteFetchResult(statusCode: httpResponse.statusCode)
 
                 if httpResponse.statusCode == 200, let data = data {
                     self?.parseUsageData(data)
@@ -1910,7 +1926,7 @@ struct UsageView: View {
 
             HStack {
                 let stale = SyncHelpers.isStale(usageManager.lastUpdated)
-                Text("Mis à jour \(SyncHelpers.age(since: usageManager.lastUpdated)) · \(usageManager.usageSource == "claude.ai" ? "claude.ai" : "statusline, sans session claude.ai")")
+                Text("Mis à jour \(SyncHelpers.age(since: usageManager.lastUpdated)) · \(usageManager.usageSource == "claude.ai" ? "claude.ai" : "statusline, sans session claude.ai")\(usageManager.isRefreshSlowed ? " · ralenti (5 min)" : "")")
                     .font(.caption)
                     .foregroundColor(stale ? .orange : Color.secondaryText)
                 Spacer()
