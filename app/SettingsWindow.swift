@@ -35,6 +35,9 @@ struct SettingsView: View {
             DisplayTab(usageManager: usageManager)
                 .tabItem { Label("Affichage", systemImage: "paintbrush") }
                 .tag("display")
+            StatsTab(usageManager: usageManager)
+                .tabItem { Label("Statistiques", systemImage: "chart.bar") }
+                .tag("stats")
             ConnectionsTab(usageManager: usageManager)
                 .tabItem { Label("Connexions", systemImage: "link") }
                 .tag("connections")

@@ -2,6 +2,21 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.12.0 : 20 octobre 2026
+
+### Ajouté
+- **Onglet « Statistiques »** dans les Réglages : ton rythme habituel, lu dans le journal quotidien.
+  - **Quatre chiffres clés** : aujourd'hui, moyenne par jour, jour record, heure de pointe.
+  - **Les 14 derniers jours** : colonnes de points de limite hebdomadaire consommés, avec la moyenne, le maximum et aujourd'hui étiquetés, les journées incomplètes en plus clair, et une info-bulle détaillée au survol (points de semaine et de session, pic, heures actives, couverture).
+  - **Quand tu travailles** : part des jours où tu es actif à chaque heure (28 derniers jours complets), heure de pointe étiquetée.
+  - **Par jour de la semaine** : consommation moyenne de chaque jour ; barres pleines à partir de 3 jours observés, claires (« indicatif ») avant.
+  - **Cette semaine et la précédente, à jours égaux** : seuls les jours complets écoulés comptent des deux côtés, pour ne pas comparer une semaine entamée à une semaine entière.
+  - **Journal complet** : le tableau jour par jour (semaine, session, pic, heures actives, couverture), la même donnée que les graphiques.
+  - **Fiabilité** en quatre crans (très peu de données, en construction, correct, fiable) avec une phrase qui explique ce qu'on peut en attendre ; **bouton « Afficher le fichier »**.
+- Conception selon les règles de visualisation : une seule teinte pour les grandeurs (vert/jaune/rouge réservés aux états), barres de 22 pt au plus à bout arrondi de 4 pt, étiquettes seulement sur les extrêmes, texte jamais coloré comme les barres, mode clair et sombre, VoiceOver sur chaque colonne.
+- Seuil d'exploitation : une journée compte à partir de 5 h de relevés ; aujourd'hui, incomplet, n'entre jamais dans les moyennes.
+- Outils de démonstration : `--demo-days N` (taille du journal fictif), `--demo-day-shift N` (décale l'horloge figée), `--open-journal`. Quatre écrans de plus dans la comparaison visuelle (19 au total, tous à 0,000 %).
+
 ## 1.11.1 : 20 octobre 2026
 
 ### Corrigé

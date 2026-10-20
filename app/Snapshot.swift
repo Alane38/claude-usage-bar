@@ -29,6 +29,22 @@ enum Snapshot {
         }
     }
 
+    /// Journal quotidien fictif (semaines chargées, week-ends calmes, un jour partiel) : rendu identique tous les jours avec l'horloge figée.
+    static func demoDailySummaries(days: Int = 45, now: Date = AppClock.now, calendar: Calendar = .current) -> [DailySummary] {
+        let midnight = calendar.startOfDay(for: now)
+        let base: [Double] = [26, 22, 24, 20, 17, 7, 4]    // lundi … dimanche
+        return (0..<days).reversed().compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: midnight) else { return nil }
+            let weekday = DailyInsights.weekdayIndex(of: date, calendar: calendar)
+            let used = max(1, base[weekday] + Double((offset * 37) % 9) - 4)
+            let working = weekday < 5 ? Array(9...12) + Array(14...18) + (weekday == 0 ? [20, 21] : []) : [10, 11, 15, 16]
+            let samples = offset == 0 ? 520 : (offset % 11 == 3 ? 180 : 1100 + (offset * 13) % 300)
+            return DailySummary(day: DailyStats.stamp(for: date, calendar: calendar), weeklyUsed: offset == 0 ? used * 0.45 : used,
+                                sessionUsed: used * 2.6, peakSession: min(100, 35 + used * 1.8),
+                                activeHours: working.filter { ($0 + offset) % 5 != 0 }, samples: samples)
+        }
+    }
+
     static func write(view: some View, to path: String, size: NSSize) {
         let isLight = CommandLine.arguments.contains("--light")
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height).background(Color(white: isLight ? 0.96 : 0.11)))

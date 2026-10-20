@@ -118,7 +118,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 if CommandLine.arguments.contains("--demo") {
                     // Données fictives pour l'aperçu uniquement : jamais écrites ailleurs que dans l'image.
                     // Horloge figée (19/10/2026, 12 h à Paris) : dates, jours du planning et décomptes identiques tous les jours.
-                    AppClock.freeze(at: ISO8601DateFormatter().date(from: "2026-10-19T10:00:00Z") ?? Date())
+                    AppClock.freeze(at: (ISO8601DateFormatter().date(from: "2026-10-19T10:00:00Z") ?? Date())
+                        .addingTimeInterval(86400 * (Snapshot.option("--demo-day-shift").flatMap(Double.init) ?? 0)))
                     self.usageManager.sessionUsage = Snapshot.option("--session").flatMap(Int.init) ?? 8
                     self.usageManager.weeklyUsage = Snapshot.option("--weekly").flatMap(Int.init) ?? 37
                     self.usageManager.sessionResetsAt = AppClock.now.addingTimeInterval(Snapshot.option("--session-left").flatMap(Double.init) ?? (2 * 3600 + 14 * 60))
@@ -128,6 +129,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage),
                                                                           hours: Snapshot.option("--history-hours").flatMap(Double.init) ?? 24)
                     self.usageManager.usedTodayOverride = Snapshot.option("--used-today").flatMap(Double.init)
+                    self.usageManager.dailySummaries = Snapshot.demoDailySummaries(days: Snapshot.option("--demo-days").flatMap(Int.init) ?? 45)
                     self.usageManager.updatePercentages()
                     let deadline = AppClock.now.addingTimeInterval(16 * 86400)
                     self.usageManager.consoleBalance = ConsoleBalance(balance: 87.5, currency: "USD", spentThisPeriod: 12.5,

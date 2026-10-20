@@ -621,4 +621,49 @@ try? "pas du json\n".appending(String(decoding: (try? Data(contentsOf: dailyFile
 check(dailyStore.load() == days, "journal : une ligne illisible est ignorée")
 try? FileManager.default.removeItem(at: dailyFile)
 
+// MARK: - Statistiques du journal
+func dailyFixture(_ day: String, _ used: Double, samples: Int = 1000, hours: [Int] = [9]) -> DailySummary {
+    DailySummary(day: day, weeklyUsed: used, sessionUsed: used * 2, peakSession: 40, activeHours: hours, samples: samples)
+}
+var insightFixture: [DailySummary] = []
+for d in 28...30 { insightFixture.append(dailyFixture("2026-09-\(d)", Double(d), hours: d == 28 ? [9, 20] : [9])) }
+for d in 1...18 {
+    insightFixture.append(dailyFixture(String(format: "2026-10-%02d", d), Double(d), samples: d == 10 ? 100 : 1000,
+                                       hours: (d == 5 || d == 12) ? [9, 20] : [9]))
+}
+insightFixture.append(dailyFixture("2026-10-19", 7, samples: 400))   // aujourd'hui (lundi), partiel mais au-dessus de 300 relevés
+
+let recent = DailyInsights.recentDays(insightFixture, count: 14, now: noon, calendar: paris)
+check(recent.count == 14 && recent.last?.day == "2026-10-19" && recent.last?.isToday == true && recent.first?.day == "2026-10-06", "stats : 14 derniers jours, aujourd'hui en dernier")
+check(DailyInsights.recentDays([], count: 7, now: noon, calendar: paris).allSatisfy { $0.summary == nil } && recent.first { $0.day == "2026-10-10" }?.isReliable == false, "stats : case vide sans donnée, jour partiel non fiable")
+check(DailyInsights.weekdayIndex(of: noon, calendar: paris) == 0 && DailyInsights.weekdayIndex(of: noon.addingTimeInterval(-86400), calendar: paris) == 6, "stats : lundi = 0, dimanche = 6")
+check(DailyInsights.date(fromStamp: "2026-10-19", calendar: paris).map { DailyStats.stamp(for: $0, calendar: paris) } == "2026-10-19" && DailyInsights.date(fromStamp: "n'importe quoi") == nil, "stats : aller-retour du jour AAAA-MM-JJ")
+
+let average = DailyInsights.averagePerDay(insightFixture, now: noon, calendar: paris)
+check(average != nil && average!.days == 12 && abs(average!.value - 146.0 / 12) < 0.001, "stats : moyenne par jour, aujourd'hui et jour partiel exclus")
+check(DailyInsights.averagePerDay([], now: noon, calendar: paris) == nil, "stats : moyenne sans donnée -> nil")
+check(DailyInsights.busiestDay(insightFixture)?.day == "2026-09-30", "stats : jour le plus chargé (30 points)")
+
+let weekdays = DailyInsights.weekdayStats(insightFixture, now: noon, calendar: paris)
+check(weekdays.count == 7 && weekdays[0].count == 3 && weekdays[0].average == 15 && weekdays[0].isSolid, "stats : lundi = moyenne de 3 jours, solide")
+check(weekdays[5].count == 2 && weekdays[5].average == 10 && !weekdays[5].isSolid, "stats : samedi = 2 jours fiables (le partiel est exclu), indicatif")
+
+let hours = DailyInsights.hourStats(insightFixture, now: noon, calendar: paris)
+check(hours.count == 24 && hours[9].activeDays == 20 && hours[9].totalDays == 20 && hours[9].fraction == 1, "stats : 9 h active 20 jours sur 20")
+check(hours[20].activeDays == 3 && hours[3].activeDays == 0 && DailyInsights.peakHour(hours)?.hour == 9, "stats : 20 h active 3 jours, heure de pointe = 9 h")
+
+let wednesday = paris.date(from: DateComponents(year: 2026, month: 10, day: 14, hour: 12))!   // mercredi : lundi et mardi sont complets
+let weeks = DailyInsights.weekComparison(insightFixture, now: wednesday, calendar: paris)
+check(weeks.completedDays == 2 && weeks.current == 12 + 13 && weeks.previous == 5 + 6 && weeks.delta == 14, "stats : à jours égaux, lundi + mardi = 25 pts contre 11 la semaine précédente")
+let mondayWeek = DailyInsights.weekComparison(insightFixture, now: noon, calendar: paris)
+check(mondayWeek.completedDays == 0 && mondayWeek.previous == nil && mondayWeek.current == 0, "stats : le lundi, aucun jour complet -> pas de comparaison")
+let septemberWed = paris.date(from: DateComponents(year: 2026, month: 9, day: 30, hour: 12))!   // la semaine du 21/09 n'est pas dans le journal
+let noPrevious = DailyInsights.weekComparison(insightFixture, now: septemberWed, calendar: paris)
+check(noPrevious.completedDays == 2 && noPrevious.current == 28 + 29 && noPrevious.previous == nil, "stats : semaine précédente absente du journal -> pas de comparaison")
+let thinPrevious = DailyInsights.weekComparison([dailyFixture("2026-10-13", 5), dailyFixture("2026-10-12", 3)], now: wednesday, calendar: paris)
+check(thinPrevious.previous == nil && thinPrevious.delta == nil, "stats : semaine précédente absente -> pas de comparaison")
+
+check(DataConfidence(reliableDays: 0) == .veryLow && DataConfidence(reliableDays: 3) == .building && DataConfidence(reliableDays: 14) == .good && DataConfidence(reliableDays: 28) == .solid, "stats : niveaux de fiabilité")
+check(DailyInsights.confidence(insightFixture) == .good && DailyInsights.confidence([]) == .veryLow, "stats : fiabilité du journal")
+
 exit(failures == 0 ? 0 : 1)
