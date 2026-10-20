@@ -25,7 +25,7 @@ export function settingsView(state, actions) {
     h("section", { class: "card" },
       h("h2", null, "Application"),
       state.installable ? h("button", { class: "btn primary", onclick: actions.install }, "Installer sur l'écran d'accueil")
-        : h("p", { class: "muted" }, "Pour l'installer : menu ⋮ de Chrome, puis « Ajouter à l'écran d'accueil » (ou « Installer l'application »)."),
+        : h("p", { class: "muted" }, "Pour l'installer : menu ⋮ du navigateur (Chrome, Firefox…), puis « Installer » ou « Ajouter à l'écran d'accueil »."),
       h("p", { class: "muted" }, "Les données sont chiffrées de bout en bout : le relais ne voit jamais ton usage, seule la clé de ce téléphone les déchiffre.")),
     h("section", { class: "card" },
       h("h2", null, "Oublier cet appareil"),

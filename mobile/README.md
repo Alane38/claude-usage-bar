@@ -32,7 +32,7 @@ Surveille ton usage de Claude depuis ton téléphone : jauges de session et de s
    ```
    `bun run deploy -- --dry-run` montre les étapes sans rien publier. Relancer le script est sans risque : il réutilise l'espace de stockage existant (son identifiant reste dans `relay/dist`, ignoré par git) et republie le Worker.
 2. **Sur le Mac** : ClaudeUsageBar > Réglages > **Mobile**. Colle l'adresse du relais, active la synchro, clique « Afficher le code d'association ».
-3. **Sur le téléphone** : scanne le code avec l'appareil photo. L'application s'ouvre déjà associée. Menu ⋮ de Chrome > « Ajouter à l'écran d'accueil » (ou le bouton « Installer » dans les Réglages de l'application).
+3. **Sur le téléphone** : scanne le code avec l'appareil photo. L'application s'ouvre déjà associée. Menu ⋮ du navigateur (Chrome ou Firefox) > « Installer » ou « Ajouter à l'écran d'accueil » (Chrome propose aussi un bouton « Installer » dans les Réglages de l'application).
    Sans caméra : « Copier le lien » sur le Mac, puis colle-le sur l'écran d'association.
 
 ## Ce que montre l'application
