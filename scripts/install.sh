@@ -1,10 +1,10 @@
 #!/bin/sh
 # Installe (ou met à jour) UsageForecast depuis la dernière release GitHub, après vérification de l'empreinte SHA-256.
-#   curl -fsSL https://raw.githubusercontent.com/Alane38/claude-usage-bar/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Alane38/usageforecast/main/scripts/install.sh | sh
 # Désinstaller : ajouter  -s -- --uninstall   (les données restent ; ajouter --purge pour les mettre aussi à la Corbeille).
 set -eu
 
-REPO="Alane38/claude-usage-bar"
+REPO="Alane38/usageforecast"
 BUNDLE_ID="com.alane.usagebar"
 APP_NAME="ClaudeUsageBar.app"
 # USAGEFORECAST_DEST : dossier d'installation de remplacement (tests) ; sans quitter ni ouvrir l'app.

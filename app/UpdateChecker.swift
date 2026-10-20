@@ -10,7 +10,7 @@ struct ReleaseInfo: Equatable {
 }
 
 enum UpdateChecker {
-    static let latestReleaseURL = URL(string: "https://api.github.com/repos/Alane38/claude-usage-bar/releases/latest")!
+    static let latestReleaseURL = URL(string: "https://api.github.com/repos/Alane38/usageforecast/releases/latest")!
     /// Une vérification toutes les 6 h suffit : les versions sortent au plus quelques fois par jour.
     static let interval: TimeInterval = 6 * 3600
 
@@ -35,7 +35,7 @@ enum UpdateChecker {
 
     /// Un téléchargement n'est accepté que depuis les releases de ce dépôt, en HTTPS.
     static func isTrustedDownload(_ url: URL) -> Bool {
-        url.scheme == "https" && url.host == "github.com" && url.path.hasPrefix("/Alane38/claude-usage-bar/releases/download/")
+        url.scheme == "https" && url.host == "github.com" && url.path.hasPrefix("/Alane38/usageforecast/releases/download/")
     }
 
     /// « 1.8.1 » > « 1.8.0 », comparaison numérique composante par composante (1.10.0 > 1.9.0).

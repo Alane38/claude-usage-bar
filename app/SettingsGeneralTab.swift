@@ -29,7 +29,7 @@ struct GeneralTab: View {
                 }
                 .buttonStyle(.link)
                 Button("Voir le code et le journal des changements") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/Alane38/claude-usage-bar")!)
+                    NSWorkspace.shared.open(URL(string: "https://github.com/Alane38/usageforecast")!)
                 }
                 .buttonStyle(.link)
                 Toggle("Prévenir des nouvelles versions", isOn: Binding(

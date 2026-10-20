@@ -5,5 +5,5 @@ import Foundation
 enum Brand {
     static let name = "UsageForecast"
     static let tagline = "Usage de Claude, prévisions et alertes dans la barre de menu"
-    static let repository = "https://github.com/Alane38/claude-usage-bar"
+    static let repository = "https://github.com/Alane38/usageforecast"
 }

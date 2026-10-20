@@ -156,8 +156,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     print("envoi mobile :", outcome?.message ?? "requête impossible")
                 }
                 if CommandLine.arguments.contains("--demo-update") {
-                    let base = "https://github.com/Alane38/claude-usage-bar/releases/download/v9.9.9/ClaudeUsageBar-9.9.9-arm64.zip"
-                    self.usageManager.availableUpdate = ReleaseInfo(version: "9.9.9", pageURL: URL(string: "https://github.com/Alane38/claude-usage-bar/releases")!,
+                    let base = "https://github.com/Alane38/usageforecast/releases/download/v9.9.9/ClaudeUsageBar-9.9.9-arm64.zip"
+                    self.usageManager.availableUpdate = ReleaseInfo(version: "9.9.9", pageURL: URL(string: "https://github.com/Alane38/usageforecast/releases")!,
                                                                     zipURL: URL(string: base), checksumURL: URL(string: base + ".sha256"))
                     switch Snapshot.option("--demo-update") {
                     case "working": self.usageManager.updateInstallState = .working("Téléchargement…")

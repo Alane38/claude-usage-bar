@@ -33,7 +33,7 @@ struct MobileTab: View {
                 HStack {
                     Button("Enregistrer l'adresse") { usageManager.saveDisplaySettings(); usageManager.sendMobileSnapshotIfEnabled(now: Date(), force: true) }
                         .disabled(usageManager.mobileRelay == nil)
-                    Link("Comment créer le relais", destination: URL(string: "https://github.com/Alane38/claude-usage-bar/tree/main/mobile")!)
+                    Link("Comment créer le relais", destination: URL(string: "https://github.com/Alane38/usageforecast/tree/main/mobile")!)
                         .font(.caption)
                 }
                 Text("Un petit service à toi (Cloudflare Worker, gratuit) qui ne garde que du texte chiffré pendant 30 jours.")

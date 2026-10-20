@@ -441,7 +441,7 @@ check(UsageAnalytics.nearestIndex(in: hoverPoints, to: at(6)) == 1 && UsageAnaly
 check(UsageAnalytics.nearestIndex(in: [(time: Date, percent: Double)](), to: at(0)) == nil, "survol : sans relevé -> nil")
 
 // MARK: - Vérification des versions
-func releaseJSON(tag: String, url: String = "https://github.com/Alane38/claude-usage-bar/releases/tag/v1.8.1", extra: String = "") -> Data {
+func releaseJSON(tag: String, url: String = "https://github.com/Alane38/usageforecast/releases/tag/v1.8.1", extra: String = "") -> Data {
     Data("{\"tag_name\":\"\(tag)\",\"html_url\":\"\(url)\"\(extra)}".utf8)
 }
 check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1"))?.version == "1.8.1", "mise à jour : lit tag_name sans le v")
@@ -510,8 +510,8 @@ let replacement = UpdateInstaller.script(pid: 4242, newApp: URL(fileURLWithPath:
 check(replacement.contains("kill -0 4242") && replacement.contains("'/tmp/it'\\''s/new.app'") && replacement.contains("ClaudeUsageBar.app.update"), "script : attend le pid, protège les apostrophes, prépare une copie voisine")
 check(replacement.contains(".Trash/ClaudeUsageBar-avant-mise-a-jour-") && replacement.components(separatedBy: "\n").allSatisfy { !$0.hasPrefix("r" + "m ") }, "script : l'ancienne app va à la Corbeille, jamais supprimée")
 check(replacement.contains("/usr/bin/open '/Applications/ClaudeUsageBar.app'") && !UpdateInstaller.script(pid: 1, newApp: URL(fileURLWithPath: "/a"), target: URL(fileURLWithPath: "/b.app"), trash: URL(fileURLWithPath: "/t"), relaunch: false).contains("/usr/bin/open"), "script : relance seulement si demandé")
-let assetBase = "https://github.com/Alane38/claude-usage-bar/releases/download/v1.9.2/"
-let pageLink = "https://github.com/Alane38/claude-usage-bar/releases/tag/v1.9.2"
+let assetBase = "https://github.com/Alane38/usageforecast/releases/download/v1.9.2/"
+let pageLink = "https://github.com/Alane38/usageforecast/releases/tag/v1.9.2"
 func releaseWithAssets(zip: String?, sum: String?) -> Data {
     var assets: [String] = []
     if let zip { assets.append("{\"name\":\"ClaudeUsageBar-1.9.2-arm64.zip\",\"browser_download_url\":\"\(zip)\"}") }
@@ -520,7 +520,7 @@ func releaseWithAssets(zip: String?, sum: String?) -> Data {
 }
 let withAssets = UpdateChecker.parse(releaseWithAssets(zip: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip", sum: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip.sha256"))
 check(withAssets?.zipURL != nil && withAssets?.checksumURL != nil, "release : zip et somme trouvés")
-let evil = UpdateChecker.parse(releaseWithAssets(zip: "https://evil.example/ClaudeUsageBar-1.9.2-arm64.zip", sum: "http://github.com/Alane38/claude-usage-bar/releases/download/v1.9.2/x.sha256"))
+let evil = UpdateChecker.parse(releaseWithAssets(zip: "https://evil.example/ClaudeUsageBar-1.9.2-arm64.zip", sum: "http://github.com/Alane38/usageforecast/releases/download/v1.9.2/x.sha256"))
 check(evil != nil && evil?.zipURL == nil && evil?.checksumURL == nil, "release : téléchargement hors du dépôt ou en HTTP refusé")
 check(UpdateChecker.parse(releaseWithAssets(zip: assetBase + "ClaudeUsageBar-1.9.2-arm64.zip", sum: nil))?.checksumURL == nil, "release : sans somme SHA-256, pas d'installation")
 check(UpdateChecker.parse(releaseJSON(tag: "v1.8.1"))?.zipURL == nil, "release : sans ressources -> installation manuelle")

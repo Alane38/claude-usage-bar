@@ -14,14 +14,14 @@ UsageForecast lit les limites de ton abonnement Claude (session de 5 h, semaine 
 Mac Apple Silicon, macOS 12 ou plus récent.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alane38/claude-usage-bar/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alane38/usageforecast/main/scripts/install.sh | sh
 ```
 
-Le script télécharge la dernière release, **vérifie son empreinte SHA-256**, puis installe l'app dans Applications. Tu peux aussi télécharger le `.zip` à la main sur la [page des releases](https://github.com/Alane38/claude-usage-bar/releases).
+Le script télécharge la dernière release, **vérifie son empreinte SHA-256**, puis installe l'app dans Applications. Tu peux aussi télécharger le `.zip` à la main sur la [page des releases](https://github.com/Alane38/usageforecast/releases).
 
 Ensuite, l'app se met à jour toute seule en un clic (elle vérifie l'empreinte et garde l'ancienne version dans la Corbeille).
 
-**Désinstaller** : `curl -fsSL https://raw.githubusercontent.com/Alane38/claude-usage-bar/main/scripts/install.sh | sh -s -- --uninstall` (ajoute `--purge` pour mettre aussi tes données à la Corbeille).
+**Désinstaller** : `curl -fsSL https://raw.githubusercontent.com/Alane38/usageforecast/main/scripts/install.sh | sh -s -- --uninstall` (ajoute `--purge` pour mettre aussi tes données à la Corbeille).
 
 ## Ce que ça fait
 

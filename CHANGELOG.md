@@ -1,6 +1,20 @@
 # Journal des changements
 
-Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
+UsageForecast, fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
+
+## 1.13.1 : 20 octobre 2026
+
+### Ajouté
+- **Nouveau nom : UsageForecast** (affiché dans la barre de menu, les fenêtres, les notifications et l'en-tête de la fenêtre). L'identifiant interne, le dossier de données et les noms d'archives de release restent « ClaudeUsageBar » : tes données, tes permissions et la mise à jour en un clic ne bougent pas.
+- **Assistant de premier lancement** : s'ouvre une fois si aucune donnée n'arrive, propose le réglage du statusline de Claude Code (à copier) ou le cookie claude.ai, et montre en direct si les données arrivent. Rouvrable depuis Réglages > Général.
+- **Statusline lu à un emplacement standard** (`~/Library/Application Support/ClaudeUsageBar/statusline.json`) en plus de l'ancien chemin : la copie la plus récente l'emporte.
+- **Installateur en une ligne** (`scripts/install.sh`) : télécharge la dernière release, vérifie son SHA-256, contrôle l'identifiant de l'archive, installe dans Applications. `--uninstall` retire l'app, `--purge` met aussi les données à la Corbeille.
+- **Script de captures** (`scripts/make-screenshots.sh`) : régénère les images du README et du site à partir des écrans de démonstration.
+- **Site** (`docs/`, servi par GitHub Pages), `SECURITY.md`, modèles d'issue.
+
+### Modifié
+- Dépôt renommé `Alane38/usageforecast` (l'ancienne adresse redirige). README réécrit pour le public ; site, images et README de l'auteur d'origine retirés, licence MIT conservée avec les deux mentions.
+- Mobile : le champ de l'adresse du relais n'affiche plus d'exemple qui ressemble à une valeur ; astuce d'installation Firefox corrigée ; icônes de l'application générées depuis le même dessin que le Mac ; thème sombre par défaut.
 
 ## 1.13.0 : 20 octobre 2026
 
