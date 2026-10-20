@@ -582,4 +582,43 @@ check(!refused.write("ZZZ", account: "console_session_cookie") && locked.items[B
 locked.forcedStatus = nil
 check(refused.read(account: "claude_session_cookie") == "AAA", "accès refusé : réessaie ensuite et lit normalement")
 
+// MARK: - Journal quotidien
+func sampleAt(_ day: Int, _ hour: Int, _ minute: Int = 0, session: Double?, weekly: Double?) -> UsageSample {
+    let date = paris.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+    return UsageSample(time: date.timeIntervalSince1970, session: session, weekly: weekly)
+}
+let dailyInput = [
+    sampleAt(19, 9, session: 5, weekly: 30), sampleAt(19, 9, 30, session: 12, weekly: 31), sampleAt(19, 10, session: 12, weekly: 31),
+    sampleAt(19, 14, session: 3, weekly: 33),    // session remise à zéro puis 3 % : +3 de session ; semaine +2
+    sampleAt(19, 14, 30, session: 8, weekly: 34),
+    sampleAt(20, 8, session: 0, weekly: 10),      // semaine remise à zéro pendant la nuit : jamais compté comme de la consommation
+    sampleAt(20, 8, 30, session: 6, weekly: 12),
+]
+let days = DailyStats.summarize(dailyInput, calendar: paris)
+check(days.map(\.day) == ["2026-10-19", "2026-10-20"], "journal : un résumé par jour local, dans l'ordre")
+check(days[0].weeklyUsed == 4 && days[0].samples == 5, "journal : semaine 30 -> 34 = 4 points, 5 relevés")
+check(days[0].sessionUsed == 7 + 5 + 0 && days[0].peakSession == 12, "journal : session = somme des hausses (7 puis 5), pic 12")
+check(days[0].activeHours == [9, 14], "journal : heures actives = celles où l'usage a augmenté")
+check(days[1].weeklyUsed == 2 && days[1].sessionUsed == 6, "journal : une remise à zéro (37 -> 10) n'est pas de la consommation")
+check(DailyStats.summarize([], calendar: paris).isEmpty, "journal : aucun relevé -> aucun résumé")
+
+let partialDay = DailySummary(day: "2026-10-19", weeklyUsed: 1, sessionUsed: 1, peakSession: 1, activeHours: [9], samples: 2)
+let mergedKeep = DailyStats.merge(existing: [days[0]], fresh: [partialDay], now: noon, calendar: paris)
+check(mergedKeep.first { $0.day == "2026-10-19" }?.samples == 5, "fusion : un résumé partiel n'écrase pas le complet")
+let fuller = DailySummary(day: "2026-10-19", weeklyUsed: 6, sessionUsed: 9, peakSession: 14, activeHours: [9, 14, 16], samples: 9)
+check(DailyStats.merge(existing: [days[0]], fresh: [fuller], now: noon, calendar: paris).first?.samples == 9, "fusion : un résumé plus complet remplace l'ancien")
+let longAgo = DailySummary(day: "2024-01-01", weeklyUsed: 10, sessionUsed: 10, peakSession: 10, activeHours: [], samples: 100)
+let kept = DailyStats.merge(existing: [longAgo], fresh: days, now: noon, calendar: paris)
+check(!kept.contains { $0.day == "2024-01-01" } && kept.map(\.day) == ["2026-10-19", "2026-10-20"], "fusion : plus de 400 jours -> retiré, ordre des jours")
+check(DailyStats.merge(existing: [], fresh: days, now: noon, calendar: paris) == days, "fusion : première reprise de l'existant")
+
+let dailyFile = FileManager.default.temporaryDirectory.appendingPathComponent("daily-test-\(UUID().uuidString).jsonl")
+let dailyStore = DailyHistory(url: dailyFile)
+dailyStore.save(days)
+check(dailyStore.load() == days, "journal : écriture puis lecture identiques")
+check((try? FileManager.default.attributesOfItem(atPath: dailyFile.path)[.posixPermissions] as? Int) == 0o600, "journal : fichier en 0600")
+try? "pas du json\n".appending(String(decoding: (try? Data(contentsOf: dailyFile)) ?? Data(), as: UTF8.self)).write(to: dailyFile, atomically: true, encoding: .utf8)
+check(dailyStore.load() == days, "journal : une ligne illisible est ignorée")
+try? FileManager.default.removeItem(at: dailyFile)
+
 exit(failures == 0 ? 0 : 1)

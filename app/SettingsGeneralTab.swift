@@ -11,6 +11,14 @@ struct GeneralTab: View {
         return "\(version) (build \(build))"
     }
 
+    private var dailyJournalLabel: String {
+        let days = usageManager.dailySummaries
+        guard let first = days.first else { return "aucun pour l'instant" }
+        let parts = first.day.split(separator: "-")
+        let since = parts.count == 3 ? "\(parts[2])/\(parts[1])/\(parts[0])" : first.day
+        return "\(days.count) · depuis le \(since)"
+    }
+
     var body: some View {
         Form {
             Section("À propos") {
@@ -35,6 +43,12 @@ struct GeneralTab: View {
                 Toggle("Ouvrir à la connexion", isOn: Binding(
                     get: { usageManager.openAtLogin },
                     set: { usageManager.openAtLogin = $0; usageManager.applyLoginItem($0); usageManager.saveSettings() }))
+            }
+            Section("Journal quotidien") {
+                LabeledContent("Jours enregistrés", value: dailyJournalLabel)
+                Text("Une ligne par jour (consommation, pic, heures d'activité) dans daily.jsonl, gardée 400 jours : la base pour apprendre ton rythme habituel. Rien ne quitte ta machine.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             Section("Statusline de Claude Code") {
                 Toggle("Exporter la prévision", isOn: Binding(

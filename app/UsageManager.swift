@@ -60,6 +60,9 @@ class UsageManager: ObservableObject {
     let history = UsageHistory(url: UsageHistory.defaultURL)
     @Published var historySamples: [UsageSample] = []
     var lastRecordedAt: Date?
+    let dailyHistory = DailyHistory(url: DailyHistory.defaultURL)
+    @Published var dailySummaries: [DailySummary] = []
+    var lastDailyUpdate: Date?
     var alertLedger = AlertLedger()
     var consecutiveAuthFailures = 0
     var previousSessionPercent: Double?

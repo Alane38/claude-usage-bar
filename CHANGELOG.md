@@ -2,6 +2,16 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.11.0 : 20 octobre 2026
+
+### Ajouté
+- **Journal quotidien** (`daily.jsonl`) : une ligne par jour dans `~/Library/Application Support/ClaudeUsageBar/` (points de semaine et de session consommés, pic de session, heures d'activité, nombre de relevés), **gardée 400 jours** au lieu des 8 jours de l'historique minute par minute. C'est la base pour apprendre ton rythme habituel (par jour de la semaine, sur des mois). Mis à jour toutes les 10 minutes, droits 0600, rien ne quitte la machine.
+- **Reprise de l'existant** : au premier lancement, tous les relevés déjà présents dans `history.jsonl` deviennent des résumés quotidiens avant d'être purgés ; un résumé plus complet n'est jamais écrasé par un plus partiel (le jour le plus ancien de la fenêtre de 8 jours, tronqué, garde son résumé).
+- Réglages > Général : « Journal quotidien — N jours enregistrés depuis le … ».
+
+### À venir
+- Exploitation du journal (rythme habituel par jour de la semaine, budget du jour qui en tient compte, alerte « au-dessus de ton lundi habituel ») : une fois 3 à 4 semaines accumulées.
+
 ## 1.10.2 : 19 octobre 2026
 
 ### Modifié

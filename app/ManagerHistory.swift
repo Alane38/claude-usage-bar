@@ -9,8 +9,19 @@ extension UsageManager {
 
     func loadHistory() {
         guard !isProbeRun else { return }
+        // Reprise de l'existant : tous les relevés encore présents deviennent des résumés quotidiens AVANT la purge des 8 jours.
+        refreshDailySummaries(from: history.load(since: .distantPast))
         history.prune()
         historySamples = history.load(since: Date().addingTimeInterval(-24 * 3600))
+    }
+
+    /// Met à jour `daily.jsonl` avec les relevés donnés (le résumé le plus complet de chaque jour est conservé).
+    func refreshDailySummaries(from samples: [UsageSample]) {
+        guard !samples.isEmpty else { dailySummaries = dailyHistory.load(); return }
+        let merged = DailyStats.merge(existing: dailyHistory.load(), fresh: DailyStats.summarize(samples))
+        dailyHistory.save(merged)
+        dailySummaries = merged
+        lastDailyUpdate = Date()
     }
 
     /// Un relevé par minute au plus. `date` : instant de la donnée (celui du fichier pour le statusline).
@@ -26,6 +37,8 @@ extension UsageManager {
         let cutoff = date.addingTimeInterval(-24 * 3600).timeIntervalSince1970
         historySamples.removeAll { $0.time < cutoff }
         exportForecast(now: date)
+        // Résumé de la journée : toutes les 10 minutes suffit.
+        if lastDailyUpdate.map({ date.timeIntervalSince($0) >= 600 }) ?? true { refreshDailySummaries(from: historySamples) }
     }
 
     /// Écrit la prévision courante dans un fichier lu par le statusline de Claude Code (si l'export est activé).
