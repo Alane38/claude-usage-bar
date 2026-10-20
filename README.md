@@ -1,159 +1,76 @@
-# ClaudeUsageBar (fork d'Alane)
+# UsageForecast
 
-Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar) (MIT), maintenu à part.
+**Ton usage de Claude, ses prévisions et ses alertes, dans la barre de menu de ton Mac et sur ton téléphone.**
 
-**Ce qui change**
-- Lit `rate_limits` dans le statusline de Claude Code (source officielle, sans cookie ni réseau) ; le cookie claude.ai reste optionnel.
-- Cookie stocké dans le Keychain (migration automatique depuis l'ancien stockage en clair) ; plus de log de réponse brute, plus de bannières distantes.
-- Prévisions : fin de semaine estimée, budget par jour, rythme de la session de 5 h avec heure d'atteinte de 100 %.
-- Barre de menu configurable (session, hebdo ou la plus haute, avec décompte avant reset).
-- Tuile crédits API mensuels (Max/Team), dépense saisie à la main : aucun endpoint public ne donne le solde.
+UsageForecast lit les limites de ton abonnement Claude (session de 5 h, semaine de 7 jours, crédits API) et te dit où tu en es **et où tu vas** : fin de semaine estimée, budget conseillé pour aujourd'hui, heure à laquelle tu atteindrais 100 %.
 
-**Build** (sans Xcode.app, Command Line Tools + SDK 26) : `./scripts/build.sh` puis `open build/ClaudeUsageBar.app`. Tests : `./scripts/test.sh`.
-- Développement (défaut) : cookies dans un fichier protégé, aucune fenêtre du trousseau.
-- Version : `./scripts/bump-version.sh X.Y.Z`, puis une section dans `CHANGELOG.md` et un tag git `vX.Y.Z`.
-- Release : `./scripts/release.sh`, cookies dans le trousseau macOS (voir `docs/adr/001-stockage-des-secrets.md`).
-Aperçu de l'interface sans clic : `ClaudeUsageBar --snapshot /tmp/popover.png [--settings]`.
+<p align="center">
+  <img src="docs/img/popover-sombre.png" alt="Fenêtre UsageForecast en thème sombre" width="300">
+  <img src="docs/img/popover-clair.png" alt="Fenêtre UsageForecast en thème clair" width="300">
+</p>
 
----
+## Installer
 
-# ClaudeUsageBar
+Mac Apple Silicon, macOS 12 ou plus récent.
 
-> Track your Claude.ai usage right from your Mac menu bar!
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![macOS](https://img.shields.io/badge/macOS-12.0+-blue.svg)](https://www.apple.com/macos/)
-
-<a href="https://www.producthunt.com/products/claudeusagebar?utm_source=badge-top-post-badge&utm_medium=badge&utm_campaign=badge-claudeusagebar" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1067826&theme=dark&period=daily&t=1769934818885" alt="ClaudeUsageBar - #1 Product of the Day" width="250" height="54" /></a>
-
-A lightweight, open-source macOS menu bar application that displays your Claude.ai session and weekly usage limits with real-time updates and notifications.
-
-## 📥 Download
-
-**[Download Latest Release](https://github.com/Artzainnn/claudeusagebar/releases)** (DMG Installer)
-
-## 📦 Set Up (1mn)
-
-1. Go to [claude.ai/settings/usage](https://claude.ai/settings/usage)
-2. Open Developer Tools (`Cmd+Option+I`) → **Network** tab
-3. Refresh the page, click the **"usage"** request
-4. Copy the full **"Cookie"** value from the Request Headers
-
-![Setup Guide](setup-guide.png)
-
-## ✨ Features
-
-- 🟢 **Real-time usage tracking** - Monitor session (5-hour) and weekly (7-day) limits
-- 🎨 **Color-coded menu bar icon** - Visual spark icon that changes color (green/yellow/red)
-- 🔔 **Smart notifications** - Alerts at 25%, 50%, 75%, 90% usage thresholds
-- ⌨️ **Keyboard shortcut** - Toggle popup with Cmd+U from anywhere
-- ⚡ **Auto-refresh** - Updates every 5 minutes automatically
-- 🔒 **Privacy-first** - All data stored locally on your Mac
-- 📊 **Pro plan support** - Shows weekly Sonnet usage for Pro subscribers
-- 🎯 **Menu bar only** - No Dock icon, stays out of your way
-
-[See full feature list →](app/README.md)
-
-## 🚀 Quick Start
-
-1. **Download** `ClaudeUsageBar-Installer.dmg` from [Releases](https://github.com/Artzainnn/ClaudeUsageBar/releases)
-2. **Open DMG** and drag ClaudeUsageBar to Applications folder
-3. **Launch** ClaudeUsageBar from Applications
-4. **Set cookie** from claude.ai (follow in-app instructions)
-5. **Done!** Usage appears in menu bar
-
-## 📸 Screenshots
-
-**Menu Bar Display:**
-```
-⚡ 45%  (Green spark icon when usage < 70%)
-```
-
-**Popup Interface:**
-- Session (5-hour) usage with progress bar
-- Weekly (7-day) usage with progress bar
-- Weekly Sonnet usage (Pro plan only)
-- Settings for notifications and shortcuts
-
-## 📁 Repository Structure
-
-```
-app/        - macOS menu bar application (Swift/SwiftUI)
-website/    - Landing page (HTML/CSS)
-```
-
-## 🛠️ Build from Source
-
-**Requirements:**
-- macOS 12.0 (Monterey) or later
-- Xcode Command Line Tools
-
-**Build the app:**
 ```bash
-cd app
-chmod +x build.sh
-./build.sh
+curl -fsSL https://raw.githubusercontent.com/Alane38/claude-usage-bar/main/scripts/install.sh | sh
 ```
 
-**Create DMG installer:**
+Le script télécharge la dernière release, **vérifie son empreinte SHA-256**, puis installe l'app dans Applications. Tu peux aussi télécharger le `.zip` à la main sur la [page des releases](https://github.com/Alane38/claude-usage-bar/releases).
+
+Ensuite, l'app se met à jour toute seule en un clic (elle vérifie l'empreinte et garde l'ancienne version dans la Corbeille).
+
+**Désinstaller** : `curl -fsSL https://raw.githubusercontent.com/Alane38/claude-usage-bar/main/scripts/install.sh | sh -s -- --uninstall` (ajoute `--purge` pour mettre aussi tes données à la Corbeille).
+
+## Ce que ça fait
+
+- **Prévisions** : estimation à la fin de la session et de la semaine, avec un repère de rythme sur les jauges.
+- **Budget du jour** : « 9 % utilisés sur 23 % conseillés », et un planning de la semaine.
+- **Alertes claires** : seuils, rythme trop rapide, limite atteinte, avec l'heure du prochain reset.
+- **Historique** : courbe minute par minute sur 24 h, journal quotidien gardé 400 jours, statistiques par jour de la semaine.
+- **Crédits API** : solde et dépense du mois depuis la Console Anthropic (Max et Team).
+- **État des services** : incidents de Claude et de l'API.
+- **Barre de menu configurable** : session, semaine ou la plus haute, avec décompte avant reset.
+- **Application mobile** (Android, installable depuis le navigateur) : les mêmes écrans sur ton téléphone, chiffrés de bout en bout.
+- **Mises à jour en un clic**, thème sombre par défaut.
+
+<p align="center">
+  <img src="docs/img/previsions.png" alt="Planning de la semaine" width="300">
+  <img src="docs/img/statistiques.png" alt="Statistiques" width="300">
+</p>
+
+## Comment il obtient tes chiffres
+
+1. **Le statusline de Claude Code** (recommandé) : les limites officielles que Claude Code transmet à son statusline. Aucun cookie, aucun réseau.
+2. **Ton compte claude.ai** (optionnel) : un cookie de session, si tu ne passes pas par Claude Code.
+3. **La Console Anthropic** (optionnel) : un second cookie, pour les crédits API.
+
+Les cookies restent sur ton Mac : dans le trousseau macOS pour les versions publiées, un fichier protégé en développement. Rien n'est envoyé ailleurs que vers Anthropic pour les lire.
+
+## Application mobile
+
+Active la synchro dans les réglages, déploie ton propre relais Cloudflare (gratuit, `scripts/deploy-relay.mjs`), puis scanne le code d'association. Tout est chiffré (AES-256-GCM) sur ton Mac avant l'envoi : le relais ne voit que du texte chiffré, la clé ne passe que par le code d'association. Détails : [mobile/README.md](mobile/README.md) et [docs/adr/002-application-mobile.md](docs/adr/002-application-mobile.md).
+
+## Compiler
+
+Sans Xcode.app : les Command Line Tools suffisent.
+
 ```bash
-./create_dmg.sh
+./scripts/build.sh       # développement : secrets dans un fichier protégé, aucune fenêtre du trousseau
+./scripts/release.sh     # release : secrets dans le trousseau macOS
+./scripts/test.sh        # tests Swift
+cd mobile && bun test    # tests de l'app mobile
 ```
 
-The built app will be in `app/build/ClaudeUsageBar.app`
+Détails du stockage des secrets : [docs/adr/001-stockage-des-secrets.md](docs/adr/001-stockage-des-secrets.md). Contexte pour les agents de code : [AGENTS.md](AGENTS.md).
 
-## 🔧 Development
+## Contribuer
 
-### Project Structure
+Les issues et suggestions sont bienvenues. Les fichiers de code restent sous 200 lignes ; `scripts/test.sh` et `scripts/visual-check.sh` doivent passer.
 
-- `mobile/` - Application mobile (PWA installable sur Android) et relais chiffré de bout en bout : voir [mobile/README.md](mobile/README.md)
-- `app/*.swift` - Code de l'app, un fichier par responsabilité (moins de 200 lignes chacun) : `AppDelegate*.swift` (barre de menu, popover, raccourcis), `UsageManager*.swift` (état, réglages, appels réseau, analyse des réponses), `StatusManager.swift` (état des services Claude), vues `Popover*`, `Settings*`, `HistoryViews`, `PlanViews`
-- `app/build.sh` - Build script
-- `app/create_dmg.sh` - DMG installer creation
-- `website/index.html` - Landing page
+## Origine, licence, avertissement
 
-### Key Technologies
+UsageForecast est un fork de [ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar) d'Artzainnn, publié sous licence **MIT** (voir [LICENSE](LICENSE), qui conserve la mention d'origine). Le code a depuis été largement réécrit : sources de données, stockage des secrets, prévisions, alertes, historique, mobile.
 
-- **SwiftUI** - Modern macOS UI framework
-- **AppKit** - Menu bar integration
-- **Carbon** - Global keyboard shortcuts
-- **NSUserNotification** - System notifications (no permissions needed)
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-- 🐛 Report bugs via [Issues](https://github.com/Artzainnn/claudeusagebar/issues)
-- 💡 Suggest features or improvements
-- 🔧 Submit pull requests
-- 📖 Improve documentation
-- 🌍 Translate the website
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details
-
-## ⚠️ Disclaimer
-
-This app uses Claude.ai's internal API endpoints which may change without notice. It is not affiliated with or endorsed by Anthropic. Use at your own risk.
-
-## 🙏 Support
-
-If you find this useful, consider:
-- ⭐ Starring this repository
-- 📢 Sharing with others who use Claude
-
-## 🔗 Links
-
-- **Website:** [claudeusagebar.com](https://claudeusagebar.com)
-- **Issues:** [GitHub Issues](https://github.com/Artzainnn/claudeusagebar/issues)
-- **Releases:** [GitHub Releases](https://github.com/Artzainnn/claudeusagebar/releases)
-
-## 🔗 Other projects
-
-- **Mediaboost - Guaranteed PR feature:** [Mediaboost](https://mediaboost.press)
-- **CheckWorth - AI net worth estimates from LinkedIn:** [CheckWorth](https://checkworth.app)
-
----
-
-**Made with ❤️ for the Claude community**
+Ce projet n'est ni affilié à Anthropic ni approuvé par Anthropic. « Claude » est une marque d'Anthropic. L'app s'appuie sur des points d'accès internes de claude.ai et de la Console qui peuvent changer sans préavis : utilisation à tes risques.
