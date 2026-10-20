@@ -45,7 +45,7 @@ extension AppDelegate {
             toggleItem.keyEquivalentModifierMask = .command
             menu.addItem(toggleItem)
             menu.addItem(NSMenuItem.separator())
-            menu.addItem(NSMenuItem(title: "Quit ClaudeUsageBar", action: #selector(quitApp), keyEquivalent: "q"))
+            menu.addItem(NSMenuItem(title: "Quit \(Brand.name)", action: #selector(quitApp), keyEquivalent: "q"))
             statusItem.menu = menu
             statusItem.button?.performClick(nil)
             statusItem.menu = nil

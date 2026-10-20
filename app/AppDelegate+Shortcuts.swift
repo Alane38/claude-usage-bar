@@ -53,7 +53,7 @@ extension AppDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 let alert = NSAlert()
                 alert.messageText = "Accessibility Permission Required"
-                alert.informativeText = "ClaudeUsageBar needs Accessibility permission to use the Cmd+U keyboard shortcut.\n\nPlease enable it in:\nSystem Settings → Privacy & Security → Accessibility"
+                alert.informativeText = "\(Brand.name) needs Accessibility permission to use the Cmd+U keyboard shortcut.\n\nPlease enable it in:\nSystem Settings → Privacy & Security → Accessibility"
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "Open System Settings")
                 alert.addButton(withTitle: "Skip for Now")

@@ -108,7 +108,7 @@ extension UsageManager {
         browserAccessDenied = imported.isEmpty && FirefoxCookies.accessDenied()
         if imported.isEmpty {
             browserImportReport = browserAccessDenied
-                ? "macOS bloque la lecture de ton navigateur : ClaudeUsageBar a besoin de l'Accès complet au disque."
+                ? "macOS bloque la lecture de ton navigateur : \(Brand.name) a besoin de l'Accès complet au disque."
                 : "Aucune session trouvée dans Zen/Firefox : connecte-toi à claude.ai et à platform.claude.com dans ce navigateur."
         } else {
             browserImportReport = "Importé : " + imported.joined(separator: ", ")

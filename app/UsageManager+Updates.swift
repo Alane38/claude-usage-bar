@@ -11,7 +11,7 @@ extension UsageManager {
         UserDefaults.standard.set(lastUpdateCheck, forKey: "last_update_check")
         var request = URLRequest(url: UpdateChecker.latestReleaseURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("ClaudeUsageBar/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("\(Brand.name)/\(currentVersion)", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
         URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
             let release = data.flatMap(UpdateChecker.parse)
@@ -27,7 +27,7 @@ extension UsageManager {
         let defaults = UserDefaults.standard
         guard announce, defaults.string(forKey: "notified_update_version") != release.version else { return }
         defaults.set(release.version, forKey: "notified_update_version")
-        Notifier.send(title: "ClaudeUsageBar \(release.version) disponible",
+        Notifier.send(title: "\(Brand.name) \(release.version) disponible",
                       body: "Tu as la \(currentVersion). Ouvre le popover pour voir les nouveautés.", id: "update-\(release.version)")
     }
 }

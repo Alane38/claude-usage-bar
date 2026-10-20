@@ -20,7 +20,7 @@ enum UpdateInstaller {
     /// Lit `Info.plist` d'une application : nil si l'identifiant et la version sont conformes, sinon la raison du refus.
     static func problem(inInfo info: [String: Any]?, bundleID: String, version: String) -> String? {
         guard let info else { return "L'archive ne contient pas d'application valide." }
-        guard info["CFBundleIdentifier"] as? String == bundleID else { return "L'archive n'est pas ClaudeUsageBar (identifiant différent)." }
+        guard info["CFBundleIdentifier"] as? String == bundleID else { return "L'archive n'est pas \(Brand.name) (identifiant différent)." }
         guard info["CFBundleShortVersionString"] as? String == version else {
             return "La version de l'archive (\(info["CFBundleShortVersionString"] as? String ?? "?")) ne correspond pas à la release (\(version))."
         }

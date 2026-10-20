@@ -13,7 +13,7 @@ final class SettingsWindowController {
         }
         let hosting = NSHostingController(rootView: SettingsView(usageManager: usageManager, statusManager: statusManager))
         let newWindow = NSWindow(contentViewController: hosting)
-        newWindow.title = "Réglages de ClaudeUsageBar"
+        newWindow.title = "Réglages de \(Brand.name)"
         newWindow.styleMask = [.titled, .closable]
         newWindow.setContentSize(NSSize(width: 560, height: 560))
         newWindow.isReleasedWhenClosed = false

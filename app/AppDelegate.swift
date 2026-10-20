@@ -109,7 +109,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 if let style = Snapshot.option("--menubar").flatMap(MenuBarStyle.init(rawValue:)) { self.usageManager.menuBarStyle = style }
                 if CommandLine.arguments.contains("--denied") {
                     self.usageManager.browserAccessDenied = true
-                    self.usageManager.browserImportReport = "macOS bloque la lecture de ton navigateur : ClaudeUsageBar a besoin de l'Accès complet au disque."
+                    self.usageManager.browserImportReport = "macOS bloque la lecture de ton navigateur : \(Brand.name) a besoin de l'Accès complet au disque."
                 }
                 if CommandLine.arguments.contains("--real-history") {
                     // Aperçu avec le vrai historique de l'utilisateur (lecture seule).

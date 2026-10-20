@@ -60,7 +60,7 @@ struct ConnectionsView: View {
             Button("1. Ouvrir l'Accès complet au disque") { SystemSettings.openFullDiskAccess() }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-            Text("Active ClaudeUsageBar dans la liste. S'il n'y est pas, glisse-le depuis le Finder.")
+            Text("Active \(Brand.name) dans la liste. S'il n'y est pas, glisse-le depuis le Finder.")
                 .font(.caption2)
                 .foregroundColor(Color.secondaryText)
             Button("2. Afficher l'app dans le Finder") { SystemSettings.revealAppInFinder() }

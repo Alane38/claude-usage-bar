@@ -56,7 +56,7 @@ struct PopoverView: View {
 
     private var header: some View {
         HStack {
-            Text("Claude Usage").font(.headline)
+            Text(Brand.name).font(.headline)
             Spacer()
             iconButton("arrow.clockwise", help: "Actualiser") {
                 usageManager.fetchUsage()

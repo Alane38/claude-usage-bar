@@ -179,7 +179,7 @@ extension UsageManager {
     func sendTestNotification() {
         NSLog("🔔 Test notification button clicked")
 
-        Notifier.send(title: "Notification de test", body: "Les alertes de ClaudeUsageBar fonctionnent.")
+        Notifier.send(title: "Notification de test", body: "Les alertes de \(Brand.name) fonctionnent.")
         NSLog("📬 Test notification sent successfully")
     }
 
