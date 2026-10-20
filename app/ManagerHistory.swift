@@ -39,19 +39,23 @@ extension UsageManager {
         exportForecast(now: date)
         // Résumé de la journée : toutes les 10 minutes suffit.
         if lastDailyUpdate.map({ date.timeIntervalSince($0) >= 600 }) ?? true { refreshDailySummaries(from: historySamples) }
+        sendMobileSnapshotIfEnabled(now: date)
     }
 
-    /// Écrit la prévision courante dans un fichier lu par le statusline de Claude Code (si l'export est activé).
-    func exportForecast(now: Date = Date()) {
-        guard !isProbeRun, exportsForecast else { return }
-        let export = ForecastExport.make(
+    /// La prévision courante, telle que la lisent le statusline de Claude Code et le téléphone.
+    func currentForecast(now: Date = Date()) -> ForecastExport {
+        ForecastExport.make(
             now: now,
             sessionPercent: sessionResetsAt == nil ? nil : Double(sessionUsage), sessionResetsAt: sessionResetsAt,
             sessionForecast: sessionForecast, sessionRecent: sessionRecentForecast,
             weeklyPercent: weeklyResetsAt == nil ? nil : Double(weeklyUsage), weeklyResetsAt: weeklyResetsAt,
             weeklyForecast: weeklyForecast, weeklyRecent: weeklyRecentForecast,
             usedToday: weeklyUsedToday, credits: consoleBalance)
-        guard let data = export.encoded() else { return }
+    }
+
+    /// Écrit la prévision courante dans un fichier lu par le statusline de Claude Code (si l'export est activé).
+    func exportForecast(now: Date = Date()) {
+        guard !isProbeRun, exportsForecast, let data = currentForecast(now: now).encoded() else { return }
         let url = ForecastExport.defaultURL
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? data.write(to: url, options: .atomic)

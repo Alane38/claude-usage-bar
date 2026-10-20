@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 import AppKit
 import WebKit
@@ -129,6 +130,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     self.usageManager.historySamples = Snapshot.demoHistory(session: Double(self.usageManager.sessionUsage),
                                                                           hours: Snapshot.option("--history-hours").flatMap(Double.init) ?? 24)
                     self.usageManager.usedTodayOverride = Snapshot.option("--used-today").flatMap(Double.init)
+                    // La démo n'utilise jamais les vrais identifiants de la synchro mobile.
+                    let demoPair = MobileCrypto.demoPairing()
+                    self.usageManager.mobilePairingOverride = UsageManager.MobilePairing(id: demoPair.id, cipherKey: SymmetricKey(data: demoPair.secret))
+                    if CommandLine.arguments.contains("--demo-mobile") {
+                        self.usageManager.mobileSyncEnabled = true
+                        self.usageManager.mobileRelayText = "https://claude-usage-relay.exemple.workers.dev"
+                        self.usageManager.mobileStatus = "Envoyé (24 Ko chiffrés)."
+                        self.usageManager.mobileLastSuccess = AppClock.now.addingTimeInterval(-40)
+                    }
                     self.usageManager.dailySummaries = Snapshot.demoDailySummaries(days: Snapshot.option("--demo-days").flatMap(Int.init) ?? 45)
                     self.usageManager.updatePercentages()
                     let deadline = AppClock.now.addingTimeInterval(16 * 86400)
@@ -136,6 +146,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                                                                       periodResetsAt: deadline, nextExpiry: deadline,
                                                                       promoGranted: 100, promoName: "API credit (Max 5x)")
                     self.usageManager.consoleUpdatedAt = AppClock.now.addingTimeInterval(-120)
+                }
+                if let relay = Snapshot.option("--mobile-upload") {
+                    // Essai de bout en bout : le vrai chemin (snapshot, chiffrement, requête) vers un relais local, avec les données de démonstration.
+                    self.usageManager.mobileRelayText = relay
+                    let outcome = self.usageManager.mobileUploadRequest().map { MobileUploader.uploadAndWait($0.request, bytes: $0.bytes) }
+                    print("envoi mobile :", outcome?.message ?? "requête impossible")
                 }
                 if CommandLine.arguments.contains("--demo-update") {
                     let base = "https://github.com/Alane38/claude-usage-bar/releases/download/v9.9.9/ClaudeUsageBar-9.9.9-arm64.zip"

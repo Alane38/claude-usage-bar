@@ -84,6 +84,15 @@ class UsageManager: ObservableObject {
     @Published var organizations: [Organization] = []
     @Published var selectedOrganizationId: String?
     var checksForUpdates = true
+    // Synchro mobile (désactivée par défaut : rien ne quitte la machine tant qu'elle ne l'est pas).
+    @Published var mobileSyncEnabled = false
+    @Published var mobileRelayText = ""
+    @Published var mobileStatus = ""
+    @Published var mobileLastSuccess: Date?
+    var lastMobileUpload: Date?
+    var mobileUploadInFlight = false
+    /// Démonstrations et essais uniquement : remplace l'identifiant et la clé réels.
+    var mobilePairingOverride: MobilePairing?
     /// Aperçus uniquement (`--used-today`) : remplace la consommation du jour lue dans l'historique.
     var usedTodayOverride: Double?
     var lastUpdateCheck: Date?

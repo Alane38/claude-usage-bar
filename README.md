@@ -106,6 +106,7 @@ The built app will be in `app/build/ClaudeUsageBar.app`
 
 ### Project Structure
 
+- `mobile/` - Application mobile (PWA installable sur Android) et relais chiffré de bout en bout : voir [mobile/README.md](mobile/README.md)
 - `app/*.swift` - Code de l'app, un fichier par responsabilité (moins de 200 lignes chacun) : `AppDelegate*.swift` (barre de menu, popover, raccourcis), `UsageManager*.swift` (état, réglages, appels réseau, analyse des réponses), `StatusManager.swift` (état des services Claude), vues `Popover*`, `Settings*`, `HistoryViews`, `PlanViews`
 - `app/build.sh` - Build script
 - `app/create_dmg.sh` - DMG installer creation

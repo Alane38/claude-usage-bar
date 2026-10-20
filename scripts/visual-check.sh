@@ -35,6 +35,8 @@ SCENES=(
   "stats-clair-mercredi:--settings --tab stats --height 1250 --light --demo-day-shift 3"
   "stats-peu-de-donnees:--settings --tab stats --height 1250 --demo-days 2"
   "stats-journal:--settings --tab stats --height 1500 --open-journal"
+  "mobile-sombre:--settings --tab mobile --height 760 --demo-mobile"
+  "mobile-code-clair:--settings --tab mobile --height 1250 --demo-mobile --show-code --light"
   "mise-a-jour:--layout cards --demo-update"
   "mise-a-jour-echec:--layout cards --demo-update failed"
   "barre-de-menu:--menubar-styles"

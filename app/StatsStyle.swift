@@ -25,7 +25,10 @@ enum StatsStyle {
     static func ceiling(_ maxValue: Double) -> Double { max(10, (maxValue / 10).rounded(.up) * 10) }
 
     static func points(_ value: Double) -> String {
-        if value < 10, value.rounded() != value { return String(format: "%.1f pts", value).replacingOccurrences(of: ".", with: ",") }
+        if value < 10, value.rounded() != value {
+            let text = String(format: "%.1f", value)
+            if !text.hasPrefix("10") { return text.replacingOccurrences(of: ".", with: ",") + " pts" }   // 9,96 s'écrit « 10 pts »
+        }
         let rounded = Int(value.rounded())
         return rounded == 1 ? "1 pt" : "\(rounded) pts"
     }
@@ -45,7 +48,7 @@ enum StatsStyle {
 
     static let weekdayNames = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
 
-    /// Heures regroupées par plages : [0, 1, 2, 7, 9, 10] devient « 0–2 h, 7 h, 9–10 h ».
+    /// Heures regroupées par plages : [0, 1, 2, 7, 9, 10] devient « 0–2, 7, 9–10 h ».
     static func hoursText(_ hours: [Int]) -> String {
         guard !hours.isEmpty else { return "—" }
         var ranges: [String] = []

@@ -44,6 +44,9 @@ struct SettingsView: View {
             CreditsTab(usageManager: usageManager)
                 .tabItem { Label("Crédits", systemImage: "creditcard") }
                 .tag("credits")
+            MobileTab(usageManager: usageManager)
+                .tabItem { Label("Mobile", systemImage: "iphone") }
+                .tag("mobile")
             AlertsTab(usageManager: usageManager, statusManager: statusManager)
                 .tabItem { Label("Alertes", systemImage: "bell") }
                 .tag("alerts")

@@ -666,4 +666,64 @@ check(thinPrevious.previous == nil && thinPrevious.delta == nil, "stats : semain
 check(DataConfidence(reliableDays: 0) == .veryLow && DataConfidence(reliableDays: 3) == .building && DataConfidence(reliableDays: 14) == .good && DataConfidence(reliableDays: 28) == .solid, "stats : niveaux de fiabilité")
 check(DailyInsights.confidence(insightFixture) == .good && DailyInsights.confidence([]) == .veryLow, "stats : fiabilité du journal")
 
+// MARK: - Synchro mobile : chiffrement
+import CryptoKit
+let vectorKeyBytes = Data((0..<32).map { UInt8($0) })
+let vectorKey = SymmetricKey(data: vectorKeyBytes)
+let vectorNonce = try! AES.GCM.Nonce(data: Data((0..<12).map { UInt8(0xa0 + $0) }))
+let vectorBlob = "oKGio6SlpqeoqaqrnToUSCmnbZ1YR-q8ZROsu1LR6TTezi9REKnTcKBV7_CgZQ"
+// Ce même vecteur est vérifié côté téléphone (mobile/pwa/test/crypto.test.js) : les deux langages doivent s'entendre.
+check(MobileCrypto.seal(Data("{\"hello\":\"mobile\"}".utf8), key: vectorKey, nonce: vectorNonce) == vectorBlob, "mobile : vecteur de chiffrement AES-GCM fixe")
+check(MobileCrypto.open(vectorBlob, key: vectorKey).flatMap { String(data: $0, encoding: .utf8) } == "{\"hello\":\"mobile\"}", "mobile : déchiffrement du vecteur")
+check(MobileCrypto.writeToken(key: vectorKey) == "6b1a595277c20676f0184d811c30f626cbc89c753d8c80b4f8fd160c7e827a93", "mobile : jeton d'écriture HMAC fixe")
+check(MobileCrypto.open(vectorBlob, key: MobileCrypto.newKey()) == nil, "mobile : mauvaise clé -> refus")
+var tamperedBytes = MobileCrypto.data(fromBase64url: vectorBlob)!
+tamperedBytes[tamperedBytes.count - 1] ^= 0x01
+check(MobileCrypto.open(MobileCrypto.base64url(tamperedBytes), key: vectorKey) == nil, "mobile : un bit modifié -> refus (intégrité)")
+check(MobileCrypto.open("n'importe quoi", key: vectorKey) == nil && MobileCrypto.open("", key: vectorKey) == nil, "mobile : blob illisible -> refus")
+let randomKey = MobileCrypto.newKey()
+let sealedTwice = [MobileCrypto.seal(Data("x".utf8), key: randomKey), MobileCrypto.seal(Data("x".utf8), key: randomKey)]
+check(sealedTwice[0] != sealedTwice[1] && sealedTwice[0].flatMap { MobileCrypto.open($0, key: randomKey) } == Data("x".utf8), "mobile : nonce aléatoire à chaque envoi, aller-retour")
+check(MobileCrypto.data(fromBase64url: MobileCrypto.base64url(Data([0xfb, 0xff, 0xfe, 0x00, 0x3e]))) == Data([0xfb, 0xff, 0xfe, 0x00, 0x3e]) && !MobileCrypto.base64url(Data([0xfb, 0xff])).contains("="), "mobile : base64url sans « + / = »")
+check(MobileCrypto.newDeviceID().count == 32 && MobileCrypto.newDeviceID() != MobileCrypto.newDeviceID(), "mobile : identifiant de coffre de 128 bits")
+
+let pairing = PairingLink(relay: URL(string: "https://usage.example.workers.dev")!, id: String(repeating: "ab", count: 16), key: vectorKeyBytes)
+check(pairing.url.flatMap(PairingLink.parse) == pairing, "mobile : lien d'appairage, aller-retour")
+check(pairing.url?.absoluteString.hasPrefix("https://usage.example.workers.dev#v1.abab") == true, "mobile : la clé est dans le fragment, jamais dans le chemin")
+check(PairingLink.parse(URL(string: "https://x.dev/#v2.\(pairing.id).AAAA")!) == nil && PairingLink.parse(URL(string: "https://x.dev/#v1.court.AAAA")!) == nil && PairingLink.parse(URL(string: "https://x.dev/")!) == nil, "mobile : lien invalide refusé (version, identifiant, sans fragment)")
+check(PairingLink.parse(URL(string: "https://x.dev/#v1.\(pairing.id).AAAA")!) == nil, "mobile : clé trop courte refusée")
+
+// MARK: - Synchro mobile : snapshot
+let rawSamples = (0..<20).map { UsageSample(time: 1_000_200 + Double($0) * 60, session: Double($0), weekly: 50) }
+let decimated = MobileSnapshot.decimate(rawSamples)
+check(decimated.count == 4 && decimated.last?.s == 19 && decimated.first?.s == 4, "mobile : un point par tranche de 5 minutes (le dernier de la tranche)")
+check(MobileSnapshot.decimate([]).isEmpty, "mobile : historique vide -> courbe vide")
+let emptyForecast = ForecastExport.make(now: noon, sessionPercent: 12, sessionResetsAt: noon.addingTimeInterval(3 * 3600), sessionForecast: nil, sessionRecent: nil,
+                                        weeklyPercent: 40, weeklyResetsAt: noon.addingTimeInterval(86400), weeklyForecast: nil, weeklyRecent: nil, usedToday: 5, credits: nil)
+let snapshot = MobileSnapshot(version: 1, updatedAt: noon, appVersion: "1.13.0", source: "claude.ai", dataAt: noon, forecast: emptyForecast,
+                              dayBudget: MobileSnapshot.budgetInfo(DayBudget(allowed: 24, used: 30)),
+                              credits: MobileSnapshot.creditsInfo(CreditsSummary(title: "Crédits API · Max 5x", valueText: "100 $", usedFraction: 0, detail: "Expirent dans 17 j")), servicesOK: true, history: decimated,
+                              daily: [DailySummary(day: "2026-10-19", weeklyUsed: 22, sessionUsed: 60, peakSession: 52, activeHours: [16, 17], samples: 499)])
+let snapshotData = snapshot.encoded()
+check(snapshotData.flatMap(MobileSnapshot.decode) == snapshot, "mobile : snapshot, aller-retour JSON")
+check(snapshot.credits?.value == "100 $" && MobileSnapshot.creditsInfo(nil) == nil, "mobile : crédits du snapshot")
+check(snapshot.dayBudget?.level == "over" && MobileSnapshot.budgetInfo(DayBudget(allowed: 24, used: 20))?.level == "close" && MobileSnapshot.budgetInfo(nil) == nil, "mobile : niveau du budget du jour")
+check(!(String(data: snapshotData ?? Data(), encoding: .utf8) ?? "").lowercased().contains("cookie"), "mobile : aucun cookie dans le snapshot")
+
+// MARK: - Synchro mobile : envoi
+let relayURL = URL(string: "https://usage.example.workers.dev")!
+let vaultID = String(repeating: "ab", count: 16)
+check(MobileUploader.isAcceptable(relay: relayURL) && MobileUploader.isAcceptable(relay: URL(string: "http://localhost:8788")!) && MobileUploader.isAcceptable(relay: URL(string: "http://127.0.0.1:8788")!), "envoi : HTTPS, ou HTTP seulement en local")
+check(!MobileUploader.isAcceptable(relay: URL(string: "http://usage.example.com")!) && !MobileUploader.isAcceptable(relay: URL(string: "ftp://x.dev")!) && !MobileUploader.isAcceptable(relay: URL(string: "https://")!), "envoi : HTTP distant, autre schéma ou sans hôte refusés")
+check(MobileUploader.endpoint(relay: relayURL, id: vaultID)?.absoluteString == "https://usage.example.workers.dev/v1/\(vaultID)" && MobileUploader.endpoint(relay: relayURL, id: "court") == nil, "envoi : adresse du coffre, identifiant vérifié")
+check(MobileUploader.endpoint(relay: URL(string: "https://usage.example.workers.dev/ancien/chemin?x=1#clé")!, id: vaultID)?.absoluteString == "https://usage.example.workers.dev/v1/\(vaultID)", "envoi : chemin, requête et fragment du relais ignorés")
+check(MobileUploader.normalizedRelay("  usage.example.workers.dev/ ")?.absoluteString == "https://usage.example.workers.dev" && MobileUploader.normalizedRelay("https://usage.example.workers.dev/#v1.a.b")?.absoluteString == "https://usage.example.workers.dev", "envoi : adresse saisie normalisée (https ajouté, fragment retiré)")
+check(MobileUploader.normalizedRelay("") == nil && MobileUploader.normalizedRelay("http://usage.example.com") == nil && MobileUploader.normalizedRelay("localhost:8788") == nil || MobileUploader.normalizedRelay("http://localhost:8788") != nil, "envoi : adresse vide ou HTTP distant refusée")
+let putRequest = MobileUploader.request(relay: relayURL, id: vaultID, blob: "abc_-", token: String(repeating: "f", count: 64))
+check(putRequest?.httpMethod == "PUT" && putRequest?.value(forHTTPHeaderField: "X-Write-Token")?.count == 64 && putRequest?.httpBody == Data("abc_-".utf8), "envoi : PUT avec le jeton d'écriture en en-tête")
+check(MobileUploader.request(relay: URL(string: "http://usage.example.com")!, id: vaultID, blob: "x", token: "t") == nil, "envoi : aucune requête vers un relais non sûr")
+check(MobileUploader.describe(status: 200, error: nil, bytes: 24943).message == "Envoyé (24 Ko chiffrés)." && MobileUploader.describe(status: 200, error: nil, bytes: 100).ok, "envoi : succès")
+check(MobileUploader.describe(status: 403, error: nil, bytes: 1).message.contains("Réassocier") && MobileUploader.describe(status: 401, error: nil, bytes: 1).message.contains("jeton") && !MobileUploader.describe(status: 500, error: nil, bytes: 1).ok, "envoi : refus du relais expliqués")
+check(MobileUploader.describe(status: nil, error: URLError(.notConnectedToInternet), bytes: 1).message.contains("connexion Internet") && MobileUploader.describe(status: nil, error: URLError(.cannotFindHost), bytes: 1).message.contains("injoignable"), "envoi : réseau coupé ou relais injoignable")
+
 exit(failures == 0 ? 0 : 1)

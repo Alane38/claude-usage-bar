@@ -2,6 +2,23 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.13.0 : 20 octobre 2026
+
+### Ajouté
+- **Application mobile (PWA) pour Android** : accueil (points d'attention, session et semaine avec repère de rythme et prévision, budget du jour, crédits, historique 24 h tactile, état des services), **Statistiques** identiques à celles du Mac (14 jours, heures, jours de la semaine, semaines à jours égaux, journal complet, fiabilité) et Réglages (état de la synchro, thème clair/sombre/auto, installation). Elle s'installe depuis Chrome (« Ajouter à l'écran d'accueil »), s'ouvre en plein écran et **marche hors ligne** avec les dernières données, dont elle indique l'âge. Audit Lighthouse mobile : 100 en accessibilité, bonnes pratiques et SEO.
+- **Chiffrement de bout en bout** : le Mac chiffre un snapshot (AES-256-GCM) et l'envoie une fois par minute à un petit **relais Cloudflare Worker** (gratuit, sur ton compte) qui ne stocke que du texte illisible pendant 30 jours. La clé ne voyage que dans le code QR que tu scannes toi-même (dans le fragment du lien, jamais envoyé à un serveur). Jamais de cookie ni de compte dans les données.
+- **Onglet « Mobile »** dans les Réglages : activer la synchro (désactivée par défaut : rien ne quitte la machine sinon), adresse du relais, **code QR d'association** (masqué après une minute, décodé et vérifié), copier le lien, **Réassocier** (nouvelle clé, coupe l'ancien téléphone).
+- `mobile/` : relais (`relay/`), application (`pwa/`), scripts (`bun run deploy` crée le stockage et publie le Worker, `dev`, `seed`), documentation `mobile/README.md` et ADR 002. Tests : 65 en JavaScript (dont le vecteur de chiffrement et les cas de statistiques partagés avec Swift), 320 en Swift.
+- **Audit visuel complet de l'application mobile** (320, 360, 390, tablette et paysage, clair et sombre, états normal, alerte, peu de données, vide, hors ligne) : un danger à 90 % et plus ou un avertissement ne sont plus grisés par l'âge des données ; en-tête sur deux lignes, carte crédits qui ne casse plus avec un long titre, étiquettes de l'historique et des jours lisibles, espaces insécables entre nombres et unités, journal paginé (14 jours puis « Afficher plus »), barre du bas compacte en paysage, en-tête aligné sur la colonne en tablette.
+- CI : un job `mobile` (tests et fabrication du relais) qui tourne sur Ubuntu, donc sans attendre une machine macOS.
+
+### Modifié
+- La prévision envoyée au statusline expose aussi `expectedPercent` (le repère de rythme de la jauge) ; `ForecastExport` est factorisé (`currentForecast`) pour servir le statusline et le téléphone.
+- Correctif d'affichage : 9,96 points s'écrit « 10 pts » et non « 10,0 pts » (Mac et téléphone).
+
+### À faire pour l'utiliser
+- Déployer le relais une fois : `cd mobile && npx wrangler login && bun run deploy`, puis coller son adresse dans Réglages > Mobile. Les notifications quand l'application est fermée ne sont pas encore faites.
+
 ## 1.12.0 : 20 octobre 2026
 
 ### Ajouté

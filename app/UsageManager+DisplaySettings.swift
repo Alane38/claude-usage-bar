@@ -10,6 +10,8 @@ extension UsageManager {
         menuBarShowReset = defaults.bool(forKey: "menubar_show_reset")
         menuBarShowText = defaults.object(forKey: "menubar_show_text") as? Bool ?? true
         exportsForecast = defaults.object(forKey: "export_forecast") as? Bool ?? true
+        mobileSyncEnabled = defaults.bool(forKey: "mobile_sync_enabled")
+        mobileRelayText = defaults.string(forKey: "mobile_relay_url") ?? ""
         checksForUpdates = defaults.object(forKey: "check_updates") as? Bool ?? true
         lastUpdateCheck = defaults.object(forKey: "last_update_check") as? Date
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: "menubar_style") ?? "") ?? .spark
@@ -29,6 +31,8 @@ extension UsageManager {
         defaults.set(menuBarShowReset, forKey: "menubar_show_reset")
         defaults.set(menuBarShowText, forKey: "menubar_show_text")
         defaults.set(exportsForecast, forKey: "export_forecast")
+        defaults.set(mobileSyncEnabled, forKey: "mobile_sync_enabled")
+        defaults.set(mobileRelayText, forKey: "mobile_relay_url")
         defaults.set(checksForUpdates, forKey: "check_updates")
         if !exportsForecast { try? FileManager.default.removeItem(at: ForecastExport.defaultURL) }
         defaults.set(menuBarStyle.rawValue, forKey: "menubar_style")

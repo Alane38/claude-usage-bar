@@ -11,6 +11,8 @@ struct ForecastExport: Codable, Equatable {
         let exhaustsAt: Date?
         let perDayPercent: Double?
         let pace: String?
+        /// Où l'on en serait à rythme parfaitement régulier (repère de la jauge).
+        var expectedPercent: Double? = nil
     }
 
     struct Credits: Codable, Equatable {
@@ -36,7 +38,8 @@ struct ForecastExport: Codable, Equatable {
             guard let percent else { return nil }
             return Window(percent: percent, resetsAt: resets, projectedPercent: forecast?.projectedPercent,
                           ratePerHour: recent?.ratePerHour, exhaustsAt: recent?.exhaustsAt ?? forecast?.exhaustsAt,
-                          perDayPercent: daily ? forecast?.remainingPerDay : nil, pace: forecast.map { paceName($0.pace) })
+                          perDayPercent: daily ? forecast?.remainingPerDay : nil, pace: forecast.map { paceName($0.pace) },
+                          expectedPercent: forecast?.expectedPercent)
         }
         let session = window(sessionPercent, sessionResetsAt, sessionForecast, sessionRecent, daily: false)
         let weekly = window(weeklyPercent, weeklyResetsAt, weeklyForecast, weeklyRecent, daily: true)

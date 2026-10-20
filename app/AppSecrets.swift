@@ -8,6 +8,9 @@ enum AppSecrets {
     static let keychainService = "com.alane.usagebar"
     static let claudeAccount = "claude_session_cookie"
     static let consoleAccount = "console_session_cookie"
+    /// Synchro mobile : identifiant du coffre sur le relais et clé de chiffrement du téléphone.
+    static let mobileIDAccount = "mobile_id"
+    static let mobileKeyAccount = "mobile_cipher"
 
     #if RELEASE
     static let isRelease = true
