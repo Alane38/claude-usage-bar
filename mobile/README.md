@@ -30,7 +30,7 @@ Surveille ton usage de Claude depuis ton téléphone : jauges de session et de s
    npx wrangler login      # une seule fois : ouvre ton navigateur
    bun run deploy          # crée l'espace de stockage, publie le Worker, affiche son adresse
    ```
-   `bun run deploy -- --dry-run` montre les étapes sans rien publier.
+   `bun run deploy -- --dry-run` montre les étapes sans rien publier. Relancer le script est sans risque : il réutilise l'espace de stockage existant (son identifiant reste dans `relay/dist`, ignoré par git) et republie le Worker.
 2. **Sur le Mac** : ClaudeUsageBar > Réglages > **Mobile**. Colle l'adresse du relais, active la synchro, clique « Afficher le code d'association ».
 3. **Sur le téléphone** : scanne le code avec l'appareil photo. L'application s'ouvre déjà associée. Menu ⋮ de Chrome > « Ajouter à l'écran d'accueil » (ou le bouton « Installer » dans les Réglages de l'application).
    Sans caméra : « Copier le lien » sur le Mac, puis colle-le sur l'écran d'association.
