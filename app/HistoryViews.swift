@@ -1,52 +1,38 @@
 import SwiftUI
 
-/// Courbe d'une série. Choix issus des bonnes pratiques de visualisation :
-/// ligne de 2 pt, lavis léger sous la courbe, grille pleine et discrète, axe étiqueté, étiquettes ciblées (valeur finale,
-/// pic), repère de survol avec info-bulle, tracé interrompu aux remises à zéro et aux trous de données.
-struct HistoryChart: View {
+/// Tracé de la courbe seul. Il est isolé de la couche de survol et comparé par `==` : passer la souris dessus ne le redessine pas,
+/// seul un nouveau relevé (ou un changement d'échelle ou de couleur) le fait.
+private struct HistoryPlot: View, Equatable {
     let points: [(time: Date, percent: Double)]
-    /// Durée couverte par l'axe horizontal, de `maintenant - span` à maintenant.
     let span: TimeInterval
     let color: Color
+    /// Plafond de l'axe vertical, calculé une fois par la vue parente.
+    let ceiling: Double
+    let inset: CGFloat
 
-    @State private var hoverX: CGFloat?
-    private let plotHeight: CGFloat = 76
-    /// Marge horizontale : le point final (8 pt + anneau) ne doit pas être rogné au bord.
-    private let inset: CGFloat = 7
-
-    private var ceiling: Double {
-        UsageAnalytics.chartCeiling(maxPercent: points.map(\.percent).max() ?? 0)
+    static func == (lhs: HistoryPlot, rhs: HistoryPlot) -> Bool {
+        lhs.span == rhs.span && lhs.ceiling == rhs.ceiling && lhs.color == rhs.color && lhs.inset == rhs.inset
+            && lhs.points.count == rhs.points.count
+            && lhs.points.first?.time == rhs.points.first?.time
+            && lhs.points.last?.time == rhs.points.last?.time && lhs.points.last?.percent == rhs.points.last?.percent
     }
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .topLeading) {
-                Canvas { context, size in draw(context, size) }
-                hoverLayer(width: geo.size.width)
-            }
-            .contentShape(Rectangle())
-            .onContinuousHover { phase in
-                if case .active(let location) = phase { hoverX = location.x } else { hoverX = nil }
-            }
-        }
-        .frame(height: plotHeight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(summary)
+        Canvas { context, size in draw(context, size) }
     }
 
-    // MARK: - Dessin
-
-    private func position(_ point: (time: Date, percent: Double), in size: CGSize) -> CGPoint {
-        CGPoint(x: inset + (size.width - 2 * inset) * CGFloat(1 - AppClock.now.timeIntervalSince(point.time) / span),
+    private func position(_ point: (time: Date, percent: Double), in size: CGSize, now: Date) -> CGPoint {
+        CGPoint(x: inset + (size.width - 2 * inset) * CGFloat(1 - now.timeIntervalSince(point.time) / span),
                 y: size.height * CGFloat(1 - min(max(point.percent, 0), ceiling) / ceiling))
     }
 
     private func draw(_ context: GraphicsContext, _ size: CGSize) {
+        let now = AppClock.now   // lue une seule fois : une lecture par point rendait le dessin très lent
         drawGrid(context, size)
         var segments: [[CGPoint]] = []
         var previous: (time: Date, percent: Double)?
         for point in points {
-            let location = position(point, in: size)
+            let location = position(point, in: size, now: now)
             if let previous, !UsageAnalytics.breaksLine(from: previous, to: point) { segments[segments.count - 1].append(location) }
             else { segments.append([location]) }
             previous = point
@@ -62,7 +48,7 @@ struct HistoryChart: View {
             context.fill(area, with: .color(color.opacity(0.10)))
             context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
         }
-        drawLabels(context, size)
+        drawLabels(context, size, now: now)
     }
 
     /// Grille : lignes pleines d'un pixel, une teinte au-dessus du fond ; étiquettes d'axe en encre discrète.
@@ -82,9 +68,9 @@ struct HistoryChart: View {
     }
 
     /// Étiquettes ciblées : la valeur finale et, si elle s'en distingue, le pic. Jamais un chiffre sur chaque point.
-    private func drawLabels(_ context: GraphicsContext, _ size: CGSize) {
+    private func drawLabels(_ context: GraphicsContext, _ size: CGSize, now: Date) {
         guard let last = points.last else { return }
-        let end = position(last, in: size)
+        let end = position(last, in: size, now: now)
         let surface = Color(nsColor: .windowBackgroundColor)
         context.fill(Path(ellipseIn: CGRect(x: end.x - 6, y: end.y - 6, width: 12, height: 12)), with: .color(surface))
         context.fill(Path(ellipseIn: CGRect(x: end.x - 4, y: end.y - 4, width: 8, height: 8)), with: .color(color))
@@ -95,10 +81,46 @@ struct HistoryChart: View {
         context.draw(Text("\(Int(last.percent.rounded())) %").font(.system(size: 11, weight: .semibold)).foregroundColor(.primary),
                      at: labelCenter)
         if let peak = points.max(by: { $0.percent < $1.percent }), peak.percent - last.percent >= 8 {
-            let location = position(peak, in: size)
+            let location = position(peak, in: size, now: now)
             context.draw(Text("pic \(Int(peak.percent.rounded())) %").font(.system(size: 10)).foregroundColor(.secondary),
                          at: CGPoint(x: min(max(location.x, 28), size.width - 28), y: max(location.y - 9, 6)))
         }
+    }
+}
+
+/// Courbe d'une série. Choix issus des bonnes pratiques de visualisation :
+/// ligne de 2 pt, lavis léger sous la courbe, grille pleine et discrète, axe étiqueté, étiquettes ciblées (valeur finale,
+/// pic), repère de survol avec info-bulle, tracé interrompu aux remises à zéro et aux trous de données.
+struct HistoryChart: View {
+    let points: [(time: Date, percent: Double)]
+    /// Durée couverte par l'axe horizontal, de `maintenant - span` à maintenant.
+    let span: TimeInterval
+    let color: Color
+
+    @State private var hoverX: CGFloat?
+    private let plotHeight: CGFloat = 76
+    /// Marge horizontale : le point final (8 pt + anneau) ne doit pas être rogné au bord.
+    private let inset: CGFloat = 7
+
+    private var ceiling: Double {
+        UsageAnalytics.chartCeiling(maxPercent: points.map(\.percent).max() ?? 0)
+    }
+
+    var body: some View {
+        let top = ceiling   // une seule fois par évaluation
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                HistoryPlot(points: points, span: span, color: color, ceiling: top, inset: inset).equatable()
+                hoverLayer(width: geo.size.width)
+            }
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                if case .active(let location) = phase { hoverX = location.x } else { hoverX = nil }
+            }
+        }
+        .frame(height: plotHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(summary)
     }
 
     // MARK: - Survol

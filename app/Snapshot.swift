@@ -36,7 +36,9 @@ enum Snapshot {
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.contentView = hosting
         window.appearance = NSAppearance(named: isLight ? .aqua : .darkAqua)
+        let start = CFAbsoluteTimeGetCurrent()
         hosting.layoutSubtreeIfNeeded()
+        defer { if CommandLine.arguments.contains("--time") { print(String(format: "rendu complet : %.0f ms", (CFAbsoluteTimeGetCurrent() - start) * 1000)) } }
         guard let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return }
         hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
         guard let png = bitmap.representation(using: .png, properties: [:]) else { return }

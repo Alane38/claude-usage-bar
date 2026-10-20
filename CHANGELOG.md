@@ -2,6 +2,15 @@
 
 Fork de [Artzainnn/ClaudeUsageBar](https://github.com/Artzainnn/ClaudeUsageBar). Format : une section par version, la plus récente en haut.
 
+## 1.11.1 : 20 octobre 2026
+
+### Corrigé
+- **Lenteur croissante du popover quand on survole la courbe ou clique sur un bouton.** Cause : à chaque dessin, la courbe recalculait son plafond d'axe pour chacun de ses points (calcul quadratique). Avec 24 h d'historique (1 440 relevés), un dessin coûtait **529 ms** ; il coûte maintenant **1,6 ms**. Plus l'historique grossissait dans la journée, plus ça ramait, d'où « fluide au début ».
+- Le tracé est maintenant isolé de la couche de survol : passer la souris sur la courbe ne redessine plus la courbe, seulement l'info-bulle.
+
+### Ajouté
+- Outils de mesure : `--bench-chart [nombre de relevés]` (coût d'un dessin de la courbe) et `--time` (durée du rendu complet d'une capture).
+
 ## 1.11.0 : 20 octobre 2026
 
 ### Ajouté

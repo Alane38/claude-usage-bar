@@ -1,8 +1,31 @@
 import AppKit
+import SwiftUI
 
 /// Outils de développement lancés en ligne de commande : ils impriment des statuts (jamais de secret) puis quittent.
 extension AppDelegate {
     func runCommandLineTools() {
+        if CommandLine.arguments.contains("--bench-chart") {
+            // Coût d'un dessin complet de la courbe d'historique : `--bench-chart [nombre de relevés]` (1 440 = 24 h).
+            DispatchQueue.main.async {
+                let count = Snapshot.option("--bench-chart").flatMap(Int.init) ?? 1440
+                let now = Date()
+                var points: [(time: Date, percent: Double)] = []
+                for index in 0..<count {
+                    points.append((time: now.addingTimeInterval(-Double(count - index) * 60), percent: Double((index * 7) % 60)))
+                }
+                var durations: [Double] = []
+                for _ in 0..<15 {
+                    let start = CFAbsoluteTimeGetCurrent()
+                    _ = ImageRenderer(content: HistoryChart(points: points, span: Double(count) * 60, color: .green).frame(width: 330)).cgImage
+                    durations.append((CFAbsoluteTimeGetCurrent() - start) * 1000)
+                }
+                durations.sort()
+                print(String(format: "courbe de %d relevés : médiane %.1f ms par dessin (min %.1f, max %.1f)", count, durations[durations.count / 2], durations.first ?? 0, durations.last ?? 0))
+                exit(0)
+            }
+            return
+        }
+
         if CommandLine.arguments.contains("--diagnose") {
             print("diagnostic : cookie claude.ai en mémoire =", !usageManager.sessionCookie.isEmpty,
                   "| cookie Console =", !usageManager.consoleCookie.isEmpty,
