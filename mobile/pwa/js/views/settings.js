@@ -6,7 +6,7 @@ const field = (key, value) => h("div", { class: "field" }, h("span", { class: "k
 
 export function settingsView(state, actions) {
   const { snapshot, pairing, prefs, checkedAt, now, status, message } = state;
-  const themes = [["auto", "Auto"], ["light", "Clair"], ["dark", "Sombre"]];
+  const themes = [["dark", "Sombre"], ["light", "Clair"], ["auto", "Auto"]];
   const syncLabel = status === "error" ? "Échec, nouvel essai automatique" : status === "invalid" ? "Données illisibles" : status === "empty" ? "En attente du Mac" : "Active";
   return [
     h("section", { class: "card" },

@@ -55,9 +55,7 @@ details.journal summary { cursor: pointer; font-weight: 650; font-size: 15px; mi
   min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink);
   font-weight: 600; cursor: pointer;
 }
-.btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #0b1a33; } }
-:root[data-theme="dark"] .btn.primary { color: #0b1a33; }
+.btn.primary { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 .btn.danger { color: var(--danger); }
 .stack { display: grid; gap: 10px; }
 input.link {

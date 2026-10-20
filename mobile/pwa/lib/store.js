@@ -26,7 +26,7 @@ export function createStore(storage = globalThis.localStorage) {
     /** { raw, stamp, checkedAt } : le snapshot tel que reçu, l'horodatage du relais et l'instant de la dernière vérification. */
     snapshot: () => read(KEYS.snapshot),
     saveSnapshot: (entry) => write(KEYS.snapshot, entry),
-    prefs: () => ({ theme: "auto", ...(read(KEYS.prefs) ?? {}) }),
+    prefs: () => ({ theme: "dark", ...(read(KEYS.prefs) ?? {}) }),
     savePrefs: (prefs) => write(KEYS.prefs, prefs),
     /** Oublie l'appareil : l'appairage et les données. Les préférences d'affichage restent. */
     forget() {

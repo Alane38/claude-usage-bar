@@ -21,9 +21,9 @@ describe("stockage local", () => {
     expect(store.snapshot()).toEqual({ raw: { version: 1 }, stamp: "123", checkedAt: 5 });
   });
 
-  test("préférences : thème automatique par défaut, valeurs enregistrées conservées", () => {
+  test("préférences : thème sombre par défaut, valeurs enregistrées conservées", () => {
     const store = createStore(memoryStorage());
-    expect(store.prefs()).toEqual({ theme: "auto" });
+    expect(store.prefs()).toEqual({ theme: "dark" });
     store.savePrefs({ theme: "dark" });
     expect(store.prefs().theme).toBe("dark");
   });
@@ -43,7 +43,7 @@ describe("stockage local", () => {
     const store = createStore(memoryStorage({ get: true, set: true }));
     expect(store.pairing()).toBeNull();
     expect(store.savePairing({ id: "a", key: "b" })).toBe(false);
-    expect(store.prefs()).toEqual({ theme: "auto" });
+    expect(store.prefs()).toEqual({ theme: "dark" });
     expect(() => store.forget()).not.toThrow();
   });
 

@@ -39,7 +39,7 @@ Surveille ton usage de Claude depuis ton téléphone : jauges de session et de s
 
 - **Accueil** : points d'attention, session et semaine (jauge avec repère de rythme et prévision), budget du jour, crédits, historique 24 h (touche la courbe pour une valeur), état des services.
 - **Statistiques** : les mêmes que l'onglet du Mac (14 jours, heures de travail, jours de la semaine, semaines à jours égaux, journal complet), avec leur niveau de fiabilité. Touche une colonne pour le détail.
-- **Réglages** : état de la synchro, thème, installation, oublier l'appareil.
+- **Réglages** : état de la synchro, thème (sombre par défaut, quel que soit le mode du téléphone ; clair et auto au choix), installation, oublier l'appareil.
 - **Hors ligne** : l'application s'ouvre avec les dernières données et indique leur âge.
 
 Pas encore : les **notifications** quand l'application est fermée (elles demandent un service Web Push ; c'est la suite logique).

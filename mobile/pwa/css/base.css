@@ -1,24 +1,31 @@
 /* Jetons de design : mêmes teintes d'état que l'app Mac (vert, ambre, rouge), un bleu unique pour les grandeurs.
    Le mode sombre est choisi explicitement (pas un simple retournement) : chaque couleur est revalidée sur sa surface. */
+/* Jetons de design : mêmes teintes d'état que l'app Mac (vert, ambre, rouge), un bleu unique pour les grandeurs.
+   Le SOMBRE est le thème par défaut (sans attribut data-theme). « light » force le clair ; « auto » suit le téléphone.
+   Chaque couleur est choisie pour sa surface, pas retournée automatiquement. */
 :root {
-  color-scheme: light dark;
-  --bg: #f3f3f5; --card: #ffffff; --ink: #1a1a1c; --ink-2: #5d5d66; --line: rgba(0, 0, 0, 0.1);
-  --track: rgba(0, 0, 0, 0.09); --accent: #1a61d9; --accent-soft: rgba(26, 97, 217, 0.35);
-  --ok: #127f38; --warn: #9e6300; --danger: #cc1a14; --stale: #5d5d66;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --radius: 16px; --gap: 12px; --nav-h: 64px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #101012; --card: #1c1c1f; --ink: #f2f2f4; --ink-2: #a3a3ac; --line: rgba(255, 255, 255, 0.1);
-    --track: rgba(255, 255, 255, 0.12); --accent: #73a6ff; --accent-soft: rgba(115, 166, 255, 0.35);
-    --ok: #36d06a; --warn: #ffcc00; --danger: #ff5a4f; --stale: #a3a3ac; --shadow: none;
-  }
-}
-:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #101012; --card: #1c1c1f; --ink: #f2f2f4; --ink-2: #a3a3ac; --line: rgba(255, 255, 255, 0.1);
   --track: rgba(255, 255, 255, 0.12); --accent: #73a6ff; --accent-soft: rgba(115, 166, 255, 0.35);
-  --ok: #36d06a; --warn: #ffcc00; --danger: #ff5a4f; --stale: #a3a3ac; --shadow: none;
+  --ok: #36d06a; --warn: #ffcc00; --danger: #ff5a4f; --stale: #a3a3ac; --on-accent: #0b1a33;
+  --shadow: none;
+  --radius: 16px; --gap: 12px; --nav-h: 64px;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f3f5; --card: #ffffff; --ink: #1a1a1c; --ink-2: #5d5d66; --line: rgba(0, 0, 0, 0.1);
+  --track: rgba(0, 0, 0, 0.09); --accent: #1a61d9; --accent-soft: rgba(26, 97, 217, 0.35);
+  --ok: #127f38; --warn: #9e6300; --danger: #cc1a14; --stale: #5d5d66; --on-accent: #ffffff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] {
+    color-scheme: light;
+    --bg: #f3f3f5; --card: #ffffff; --ink: #1a1a1c; --ink-2: #5d5d66; --line: rgba(0, 0, 0, 0.1);
+    --track: rgba(0, 0, 0, 0.09); --accent: #1a61d9; --accent-soft: rgba(26, 97, 217, 0.35);
+    --ok: #127f38; --warn: #9e6300; --danger: #cc1a14; --stale: #5d5d66; --on-accent: #ffffff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }

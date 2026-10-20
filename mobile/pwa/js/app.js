@@ -32,8 +32,11 @@ function loadCached() {
 
 function applyTheme() {
   const theme = state.prefs.theme;
-  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  // Sombre par défaut : pas d'attribut. « light » force le clair, « auto » suit le téléphone (voir css/base.css).
+  if (theme === "light" || theme === "auto") document.documentElement.dataset.theme = theme;
   else delete document.documentElement.dataset.theme;
+  const light = theme === "light" || (theme === "auto" && matchMedia("(prefers-color-scheme: light)").matches);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f3f3f5" : "#101012");   // barre d'état du navigateur
 }
 
 function renderChrome() {
