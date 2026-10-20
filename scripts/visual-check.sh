@@ -39,6 +39,7 @@ SCENES=(
   "mobile-code-clair:--settings --tab mobile --height 1250 --demo-mobile --show-code --light"
   "mise-a-jour:--layout cards --demo-update"
   "mise-a-jour-echec:--layout cards --demo-update failed"
+  "bienvenue:--welcome"
   "barre-de-menu:--menubar-styles"
   "reglages-affichage:--settings --tab display"
 )

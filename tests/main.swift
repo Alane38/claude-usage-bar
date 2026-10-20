@@ -726,4 +726,27 @@ check(MobileUploader.describe(status: 200, error: nil, bytes: 24943).message == 
 check(MobileUploader.describe(status: 403, error: nil, bytes: 1).message.contains("Réassocier") && MobileUploader.describe(status: 401, error: nil, bytes: 1).message.contains("jeton") && !MobileUploader.describe(status: 500, error: nil, bytes: 1).ok, "envoi : refus du relais expliqués")
 check(MobileUploader.describe(status: nil, error: URLError(.notConnectedToInternet), bytes: 1).message.contains("connexion Internet") && MobileUploader.describe(status: nil, error: URLError(.cannotFindHost), bytes: 1).message.contains("injoignable"), "envoi : réseau coupé ou relais injoignable")
 
+
+// Premier lancement : assistant affiché une seule fois et seulement sans données.
+check(FirstRun.isNeeded(seen: false, hasData: false), "premier lancement : assistant proposé")
+check(!FirstRun.isNeeded(seen: true, hasData: false), "premier lancement : déjà vu, pas de nouvelle fenêtre")
+check(!FirstRun.isNeeded(seen: false, hasData: true), "premier lancement : des données existent déjà, pas d'assistant")
+check(FirstRun.statuslineSetting.contains("statusline.json") && FirstRun.statuslineSetting.contains("\"type\": \"command\""), "réglage du statusline : copie vers statusline.json")
+let wrapped = "{" + FirstRun.statuslineSetting + "}"
+check((try? JSONSerialization.jsonObject(with: Data(wrapped.utf8))) != nil, "réglage du statusline : JSON valide une fois copié dans settings.json")
+
+let nowForFiles = Date()
+let fileDir = FileManager.default.temporaryDirectory.appendingPathComponent("uf-statusline-\(UUID().uuidString)")
+try? FileManager.default.createDirectory(at: fileDir, withIntermediateDirectories: true)
+let older = fileDir.appendingPathComponent("older.json").path
+let newer = fileDir.appendingPathComponent("newer.json").path
+let futureReset = Int(nowForFiles.timeIntervalSince1970) + 3600
+try? Data("{\"rate_limits\":{\"five_hour\":{\"used_percentage\":10,\"resets_at\":\(futureReset)}}}".utf8).write(to: URL(fileURLWithPath: older))
+try? Data("{\"rate_limits\":{\"five_hour\":{\"used_percentage\":42,\"resets_at\":\(futureReset)}}}".utf8).write(to: URL(fileURLWithPath: newer))
+try? FileManager.default.setAttributes([.modificationDate: nowForFiles.addingTimeInterval(-600)], ofItemAtPath: older)
+check(StatuslineUsage.loadNewest(paths: [older, newer], now: nowForFiles)?.fiveHour?.usedPercentage == 42, "statusline : la copie la plus récente l'emporte")
+check(StatuslineUsage.loadNewest(paths: [fileDir.appendingPathComponent("absent.json").path, older], now: nowForFiles)?.fiveHour?.usedPercentage == 10, "statusline : un emplacement absent est ignoré")
+check(StatuslineUsage.loadNewest(paths: [fileDir.appendingPathComponent("absent.json").path], now: nowForFiles) == nil, "statusline : aucun emplacement lisible -> nil")
+try? FileManager.default.removeItem(at: fileDir)
+
 exit(failures == 0 ? 0 : 1)

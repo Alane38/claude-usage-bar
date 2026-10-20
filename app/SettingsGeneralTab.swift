@@ -24,6 +24,10 @@ struct GeneralTab: View {
             Section("À propos") {
                 LabeledContent("Version", value: versionLabel)
                 LabeledContent("Stockage des secrets", value: AppSecrets.storageLabel)
+                Button("Revoir l'assistant de démarrage") {
+                    NotificationCenter.default.post(name: .showWelcome, object: nil)
+                }
+                .buttonStyle(.link)
                 Button("Voir le code et le journal des changements") {
                     NSWorkspace.shared.open(URL(string: "https://github.com/Alane38/claude-usage-bar")!)
                 }

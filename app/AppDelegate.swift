@@ -13,6 +13,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var statusManager: StatusManager!
     var eventMonitor: Any?
     let settingsController = SettingsWindowController()
+    let welcomeController = WelcomeWindowController()
     var hotKeyRef: EventHotKeyRef?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -88,6 +89,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
 
         runCommandLineTools()
+        setUpWelcome()
 
         // Options de vérification visuelle : appliquées au lancement, jamais enregistrées dans les réglages.
         if let layout = Snapshot.option("--layout").flatMap(PopoverLayout.init(rawValue:)) { usageManager.popoverLayout = layout }
@@ -172,6 +174,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                             }
                         }
                     }.padding(16), to: snapshotPath, size: NSSize(width: 320, height: 170))
+                } else if CommandLine.arguments.contains("--welcome") {
+                    Snapshot.write(view: WelcomeView(usageManager: self.usageManager, openConnections: {}, finish: {}), to: snapshotPath, size: NSSize(width: 520, height: 620))
                 } else if CommandLine.arguments.contains("--settings") {
                     Snapshot.write(view: SettingsView(usageManager: self.usageManager, statusManager: self.statusManager),
                                    to: snapshotPath, size: NSSize(width: 560, height: Snapshot.option("--height").flatMap(Double.init).map { CGFloat($0) } ?? 560))

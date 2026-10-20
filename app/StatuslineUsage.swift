@@ -14,6 +14,8 @@ struct StatuslineUsage: Equatable {
     let capturedAt: Date
 
     static let defaultPath = NSString(string: "~/.claude/scripts/statusline/data/last_payload.txt").expandingTildeInPath
+    /// Copie posée par la commande de l'assistant de démarrage (voir `FirstRun.statuslineSetting`).
+    static let standardPath = NSString(string: FirstRun.statuslineFileHint).expandingTildeInPath
 
     /// Une fenêtre dont l'heure de reset est passée est abandonnée (Claude Code fait pareil) :
     /// son pourcentage ne dit plus rien sur la fenêtre en cours.
@@ -46,5 +48,10 @@ struct StatuslineUsage: Equatable {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let modified = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date) ?? now
         return parse(data, capturedAt: modified, now: now)
+    }
+
+    /// Lit chaque emplacement connu et garde la donnée la plus récente.
+    static func loadNewest(paths: [String] = [standardPath, defaultPath], now: Date = AppClock.now) -> StatuslineUsage? {
+        paths.compactMap { load(path: $0, now: now) }.max { $0.capturedAt < $1.capturedAt }
     }
 }

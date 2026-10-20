@@ -33,7 +33,7 @@ Ensuite, l'app se met à jour toute seule en un clic (elle vérifie l'empreinte 
 - **État des services** : incidents de Claude et de l'API.
 - **Barre de menu configurable** : session, semaine ou la plus haute, avec décompte avant reset.
 - **Application mobile** (Android, installable depuis le navigateur) : les mêmes écrans sur ton téléphone, chiffrés de bout en bout.
-- **Mises à jour en un clic**, thème sombre par défaut.
+- **Assistant de premier lancement** et **mises à jour en un clic**, thème sombre par défaut.
 
 <p align="center">
   <img src="docs/img/previsions.png" alt="Planning de la semaine" width="300">
