@@ -18,10 +18,15 @@ struct MobileTab: View {
                     .font(.caption).foregroundColor(.secondary)
             }
             Section("Relais") {
-                TextField("Adresse du relais", text: $usageManager.mobileRelayText, prompt: Text("https://claude-usage-relay.ton-compte.workers.dev"))
+                TextField("Adresse du relais", text: $usageManager.mobileRelayText,
+                          prompt: Text(verbatim: "Colle ici l'adresse de ton relais").foregroundColor(.secondary))
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { usageManager.saveDisplaySettings() }
+                if usageManager.mobileSyncEnabled && usageManager.mobileRelayText.isEmpty {
+                    Text("Le champ est vide : colle l'adresse de ton relais (celle affichée à la fin du déploiement).")
+                        .font(.caption).foregroundColor(.orange)
+                }
                 if relayIsInvalid {
                     Text("Adresse invalide : elle doit commencer par https://.").font(.caption).foregroundColor(.red)
                 }
@@ -32,6 +37,9 @@ struct MobileTab: View {
                         .font(.caption)
                 }
                 Text("Un petit service à toi (Cloudflare Worker, gratuit) qui ne garde que du texte chiffré pendant 30 jours.")
+                    .font(.caption).foregroundColor(.secondary)
+                // En texte brut : sans cela macOS colore l'adresse comme un lien et on la prend pour une valeur saisie.
+                Text(verbatim: "Elle ressemble à : https://claude-usage-relay.ton-compte.workers.dev")
                     .font(.caption).foregroundColor(.secondary)
             }
             if usageManager.mobileSyncEnabled, usageManager.mobileRelay != nil { pairingSection }
